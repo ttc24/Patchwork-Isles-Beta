@@ -1,0 +1,4 @@
+black>=24.3
+ruff>=0.6.0
+mypy>=1.10
+pillow>=11.0

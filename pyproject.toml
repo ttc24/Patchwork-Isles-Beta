@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+include = "\.(py|pyi)$"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+src = ["engine", "tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E203", "E266"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["engine", "tools"]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.8"
+warn_unused_configs = true
+ignore_missing_imports = true
+pretty = true
+show_error_codes = true
