@@ -79,6 +79,13 @@ See [`docs/planning/v0.9-beta-backlog.md`](docs/planning/v0.9-beta-backlog.md) f
 - **Allowed effect types:** `add_item`, `remove_item`, `set_flag`, `add_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`
 - _Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes._
 <!-- schema-docs:end -->
+- **Inline UI formatting (ANSI):**
+  Use wrappers like `{trait:People-Reader}` or `{tag:Crimson Scarf}` in node text or choice labels.
+  Supported wrappers: traits (cyan), items/resources/tags (green), factions (yellow), locked/danger (red).
+  ```text
+  You spot {trait:People-Reader} cues and clutch the {tag:Crimson Scarf} as the {faction:Root Court} watches.
+  The {danger:Locked Gate} looms ahead.
+  ```
 - **Gate a choice by Tag:**
   ```json
   "condition": {"type": "has_tag", "value": "Sneaky"}
