@@ -811,6 +811,31 @@ def resolve_action_type(choice, current_node):
         return "move"
     return "explore"
 
+def extract_choice_requirement_labels(condition):
+    if not condition:
+        return []
+    if isinstance(condition, list):
+        labels = []
+        for entry in condition:
+            labels.extend(extract_choice_requirement_labels(entry))
+        return labels
+    if not isinstance(condition, dict):
+        return []
+    ctype = condition.get("type")
+    if ctype == "has_tag":
+        value = condition.get("value")
+        if value is None:
+            return []
+        tags = value if isinstance(value, list) else [value]
+        return [tag for tag in canonicalize_tag_list(tags) if tag]
+    if ctype == "has_trait":
+        value = condition.get("value")
+        if value is None:
+            return []
+        traits = value if isinstance(value, list) else [value]
+        return [str(trait) for trait in traits if trait]
+    return []
+
 def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
     settings = state.settings
@@ -842,6 +867,10 @@ def render_node(node, state):
     visible = list_choices(node, state)
     for idx, ch in enumerate(visible, start=1):
         choice_text = ch.get("text", f"Choice {idx}")
+        requirement_labels = extract_choice_requirement_labels(ch.get("condition"))
+        if requirement_labels:
+            joined_labels = "/".join(requirement_labels)
+            choice_text = f"[{joined_labels}] {choice_text}"
         choice_text = format_choice_text(choice_text, settings)
         choice_text = print_formatted(choice_text)
         if getattr(settings, "high_contrast", False):
