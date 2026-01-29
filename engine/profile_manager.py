@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import shutil
@@ -10,7 +11,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List
+from typing import Awaitable, Callable, List
 
 
 class ProfileError(Exception):
@@ -120,15 +121,15 @@ def _list_profiles(base_dir: Path) -> List[str]:
     return profiles
 
 
-def _prompt_new_profile(
+async def _prompt_new_profile(
     base_dir: Path,
     save_root: Path,
     *,
-    input_func: Callable[[str], str],
+    input_func: Callable[[str], str | Awaitable[str]],
     print_func: Callable[[str], None],
 ) -> ProfileSelection:
     while True:
-        raw_name = input_func("Enter new profile name: ")
+        raw_name = await _resolve_input(input_func, "Enter new profile name: ")
         try:
             name = _normalize_profile_name(raw_name)
         except ProfileError as exc:
@@ -148,11 +149,11 @@ def _prompt_new_profile(
         )
 
 
-def select_profile(
+async def select_profile(
     *,
     base_dir: Path | str = DEFAULT_PROFILE_ROOT,
     save_root: Path | str = DEFAULT_SAVE_ROOT,
-    input_func: Callable[[str], str] = input,
+    input_func: Callable[[str], str | Awaitable[str]] = input,
     print_func: Callable[[str], None] = print,
 ) -> ProfileSelection:
     base_dir = Path(base_dir)
@@ -164,7 +165,7 @@ def select_profile(
         profiles = _list_profiles(base_dir)
         if not profiles:
             print_func("No profiles found. Let's create one.")
-            return _prompt_new_profile(
+            return await _prompt_new_profile(
                 base_dir, save_root, input_func=input_func, print_func=print_func
             )
 
@@ -174,12 +175,12 @@ def select_profile(
         print_func("  N. New profile")
         print_func("  Q. Quit")
 
-        choice = input_func("> ").strip().lower()
+        choice = (await _resolve_input(input_func, "> ")).strip().lower()
         if choice in {"q", "quit"}:
             print_func("Goodbye!")
             sys.exit(0)
         if choice in {"n", "new"}:
-            return _prompt_new_profile(
+            return await _prompt_new_profile(
                 base_dir, save_root, input_func=input_func, print_func=print_func
             )
         if choice.isdigit():
@@ -193,3 +194,13 @@ def select_profile(
                     save_root=save_root / name,
                 )
         print_func("Pick a valid profile number, N for new, or Q to quit.")
+
+
+async def _resolve_input(
+    input_func: Callable[[str], str | Awaitable[str]],
+    prompt: str,
+) -> str:
+    result = input_func(prompt)
+    if inspect.isawaitable(result):
+        return await result
+    return result

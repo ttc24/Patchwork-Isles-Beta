@@ -9,12 +9,12 @@ Usage: python3 engine_min.py [world.json]
 """
 
 import argparse
+import asyncio
 import hashlib
 import json
 import re
 import sys
 import textwrap
-import time
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -65,8 +65,8 @@ def emit_print(*args, **kwargs) -> None:
     print(*args, **kwargs)
 
 
-def read_input(prompt: str = "") -> str:
-    return input(prompt)
+async def read_input(prompt: str = "") -> str:
+    return await asyncio.to_thread(input, prompt)
 
 DEFAULT_REP_MIN = -10
 DEFAULT_REP_MAX = 10
@@ -183,7 +183,7 @@ def compute_text_delay(settings: Settings) -> float:
     return BASE_TEXT_DELAY / max(speed, 0.1)
 
 
-def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> None:
+async def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> None:
     delay = compute_text_delay(state.settings) if allow_delay else 0.0
     formatted = print_formatted(text)
     if delay <= 0:
@@ -191,14 +191,16 @@ def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> Non
         return
     for char in formatted:
         emit_print(char, end="", flush=True)
-        time.sleep(delay)
+        await asyncio.sleep(delay)
     emit_print("")
 
 
-def emit_effect_message(state: "GameState", message: str, *, audio_cue: str | None = None) -> None:
-    emit_line(print_formatted(message), state, allow_delay=True)
+async def emit_effect_message(
+    state: "GameState", message: str, *, audio_cue: str | None = None
+) -> None:
+    await emit_line(print_formatted(message), state, allow_delay=True)
     if audio_cue and getattr(state.settings, "caption_audio_cues", False):
-        emit_line(print_formatted(f"[Audio Cue] {audio_cue}"), state, allow_delay=True)
+        await emit_line(print_formatted(f"[Audio Cue] {audio_cue}"), state, allow_delay=True)
 
 
 def read_world_art(state: "GameState", filename: str | None) -> str | None:
@@ -403,7 +405,9 @@ class GameState:
         self.history.append(entry)
 
 
-def apply_runtime_settings(state: GameState, new_settings: Settings, *, announce: bool = True) -> Settings:
+async def apply_runtime_settings(
+    state: GameState, new_settings: Settings, *, announce: bool = True
+) -> Settings:
     if isinstance(new_settings, Settings):
         target = new_settings.copy()
     else:
@@ -459,7 +463,7 @@ def apply_runtime_settings(state: GameState, new_settings: Settings, *, announce
         )
 
     for message in updates:
-        emit_line(message, state, allow_delay=True)
+        await emit_line(message, state, allow_delay=True)
 
     return state.settings
 
@@ -780,7 +784,7 @@ def ensure_hostile_outcome_nodes(world):
     world["endings"] = endings
 
 
-def resolve_hostile_node(state, node_id, node):
+async def resolve_hostile_node(state, node_id, node):
     if not isinstance(node, dict):
         return None
     if node.get("ignore_hostile"):
@@ -803,7 +807,7 @@ def resolve_hostile_node(state, node_id, node):
         outcome = "forced_retreat"
     target = outcome_targets.get(outcome)
     if target:
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[!] Hostile presence from {', '.join(hostile)} forces a {outcome.replace('_', ' ')}.",
             audio_cue="Hostile encounter.",
@@ -811,7 +815,7 @@ def resolve_hostile_node(state, node_id, node):
     return target
 
 
-def apply_rep_delta_with_ripple(state, faction, delta):
+async def apply_rep_delta_with_ripple(state, faction, delta):
     updates = {faction: delta}
     relationships = state.world.get("faction_relationships", {})
     if isinstance(relationships, dict):
@@ -827,20 +831,20 @@ def apply_rep_delta_with_ripple(state, faction, delta):
         if dv == 0:
             continue
         state.player["rep"][fac] = clamp(state.player["rep"].get(fac, 0) + dv, rep_min, rep_max)
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {state.player['rep'][fac]}",
             audio_cue="Reputation changed.",
         )
 
-def apply_effect(effect, state):
+async def apply_effect(effect, state):
     if not effect: return
     t = effect.get("type")
     p = state.player
 
     if t == "set_flag":
         p["flags"][effect["flag"]] = effect.get("value", True)
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[*] Flag {effect['flag']} set to {p['flags'][effect['flag']]}",
             audio_cue="Status updated.",
@@ -849,26 +853,32 @@ def apply_effect(effect, state):
         tg = canonical_tag(effect["value"])
         if tg not in p["tags"]:
             p["tags"].append(tg)
-            emit_effect_message(state, f"[#] New Tag unlocked: {tg}", audio_cue="Tag unlocked.")
+            await emit_effect_message(
+                state, f"[#] New Tag unlocked: {tg}", audio_cue="Tag unlocked."
+            )
         p["tags"] = canonicalize_tag_list(p["tags"])
     elif t == "remove_tag":
         tg = canonical_tag(effect["value"])
         if tg in p["tags"]:
             p["tags"].remove(tg)
-            emit_effect_message(state, f"[#] Tag removed: {tg}", audio_cue="Tag removed.")
+            await emit_effect_message(
+                state, f"[#] Tag removed: {tg}", audio_cue="Tag removed."
+            )
         p["tags"] = canonicalize_tag_list(p["tags"])
     elif t == "add_trait":
         tr = effect["value"]
         if tr not in p["traits"]:
             p["traits"].append(tr)
-            emit_effect_message(state, f"[✦] New Trait gained: {tr}", audio_cue="Trait gained.")
+            await emit_effect_message(
+                state, f"[✦] New Trait gained: {tr}", audio_cue="Trait gained."
+            )
     elif t == "var_delta":
         var = effect.get("var")
         if not var:
             return
         dv = int(effect.get("value", 0))
         p["resources"][var] = p["resources"].get(var, 0) + dv
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[¤] {var} {'+' if dv >= 0 else ''}{dv} -> {p['resources'][var]}",
             audio_cue="Resources updated.",
@@ -879,7 +889,7 @@ def apply_effect(effect, state):
             return
         value = int(effect.get("value", 0))
         p["resources"][var] = value
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[¤] {var} set to {p['resources'][var]}",
             audio_cue="Resources updated.",
@@ -887,18 +897,18 @@ def apply_effect(effect, state):
     elif t == "rep_delta":
         fac = effect["faction"]
         dv = int(effect.get("value", 0))
-        apply_rep_delta_with_ripple(state, fac, dv)
+        await apply_rep_delta_with_ripple(state, fac, dv)
     elif t == "hp_delta":
         dv = int(effect.get("value",0))
         p["hp"] += dv
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[♥] HP {'+' if dv>=0 else ''}{dv} -> {p['hp']}",
             audio_cue="Health changed.",
         )
     elif t == "teleport":
         goto = effect["target"]
-        emit_effect_message(
+        await emit_effect_message(
             state,
             f"[~] You are moved to '{goto}'.",
             audio_cue="Location transition.",
@@ -916,7 +926,7 @@ def apply_effect(effect, state):
             unlocked.append(start_id)
             save_profile(state.profile, state.profile_path)
             title = get_start_title(state.world, start_id)
-            emit_effect_message(
+            await emit_effect_message(
                 state,
                 f"[#] Origin unlocked: {title}",
                 audio_cue="Origin unlocked.",
@@ -932,7 +942,7 @@ def apply_effect(effect, state):
         if previous != value:
             flags[flag] = value
             save_profile(state.profile, state.profile_path)
-            emit_effect_message(
+            await emit_effect_message(
                 state,
                 f"[Profile] {flag} set to {value}.",
                 audio_cue="Profile updated.",
@@ -947,15 +957,15 @@ def apply_effect(effect, state):
         if legacy not in tags:
             tags.append(legacy)
             save_profile(state.profile, state.profile_path)
-            emit_effect_message(
+            await emit_effect_message(
                 state,
                 f"[#] Legacy Tag granted: {legacy}",
                 audio_cue="Legacy tag granted.",
             )
 
-def apply_effects(effects, state):
+async def apply_effects(effects, state):
     for eff in effects or []:
-        apply_effect(eff, state)
+        await apply_effect(eff, state)
 
 # ---------- Loop ----------
 def list_choices(node, state):
@@ -1096,7 +1106,7 @@ def summarize_choice_requirements(condition):
         return "Doom Not Reached"
     return "None"
 
-def render_node(node, state):
+async def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
     settings = state.settings
     emit_print("\n" + separator(width, settings, primary=True))
@@ -1106,29 +1116,29 @@ def render_node(node, state):
     art_text = read_world_art(state, node.get("art"))
     if art_text:
         for line in art_text.splitlines():
-            emit_line(line, state, allow_delay=True)
+            await emit_line(line, state, allow_delay=True)
         emit_print("")
 
     body = node.get("text", "")
     if body:
         for paragraph in body.split("\n"):
-            if paragraph.strip():
-                for line in textwrap.wrap(paragraph, width=width):
-                    emit_line(line, state, allow_delay=True)
-            else:
-                emit_print("")
+                    if paragraph.strip():
+                        for line in textwrap.wrap(paragraph, width=width):
+                            await emit_line(line, state, allow_delay=True)
+                    else:
+                        emit_print("")
     else:
         emit_print("")
 
     if node.get("image"):
-        emit_line(f"[Image: {node['image']}]", state, allow_delay=True)
+        await emit_line(f"[Image: {node['image']}]", state, allow_delay=True)
 
     emit_print("")
     summary_text = state.summary()
     if getattr(settings, "high_contrast", False):
         summary_text = f"STATUS: {summary_text}"
     for line in textwrap.wrap(summary_text, width=width):
-        emit_line(line, state, allow_delay=True)
+        await emit_line(line, state, allow_delay=True)
     emit_print(separator(width, settings, primary=False))
     visible = list_choices(node, state)
     for idx, ch in enumerate(visible, start=1):
@@ -1168,7 +1178,7 @@ def render_node(node, state):
             emit_print(debug_line)
     return visible
 
-def pick_start(world, profile, open_options=None):
+async def pick_start(world, profile, open_options=None):
     starts = world.get("starts", [])
     unlocked_ids = set(profile.get("unlocked_starts", []))
     core = []
@@ -1221,9 +1231,9 @@ def pick_start(world, profile, open_options=None):
         if open_options is not None:
             emit_print("  O. Options")
 
-        selection = read_input("> ").strip().lower()
+        selection = (await read_input("> ")).strip().lower()
         if selection in {"o", "options"} and open_options is not None:
-            open_options()
+            await open_options()
             emit_print("")
             continue
         if selection.isdigit():
@@ -1258,16 +1268,16 @@ def show_slot_overview(save_manager):
             emit_print(f"  - {meta.slot}")
 
 
-def prompt_slot_name(action, save_manager):
+async def prompt_slot_name(action, save_manager):
     show_slot_overview(save_manager)
-    raw = read_input(f"Enter slot name to {action} (blank to cancel): ").strip()
+    raw = (await read_input(f"Enter slot name to {action} (blank to cancel): ")).strip()
     if not raw:
         emit_print(f"{action.title()} cancelled.")
         return None
     return raw
 
 
-def pause_menu(state, save_manager, open_options=None):
+async def pause_menu(state, save_manager, open_options=None):
     while True:
         emit_print("\n=== Pause Menu ===")
         emit_print("1. Save Game")
@@ -1278,14 +1288,14 @@ def pause_menu(state, save_manager, open_options=None):
             emit_print("5. Options")
         emit_print("R. Resume")
         emit_print("Q. Quit to Title")
-        choice = read_input("> ").strip().lower()
+        choice = (await read_input("> ")).strip().lower()
 
         if choice in {"r", "resume"}:
             return "resume"
         if choice in {"q", "quit"}:
             return "quit"
         if choice == "1":
-            slot = prompt_slot_name("save", save_manager)
+            slot = await prompt_slot_name("save", save_manager)
             if not slot:
                 continue
             try:
@@ -1294,11 +1304,11 @@ def pause_menu(state, save_manager, open_options=None):
                 emit_print(f"[!] {exc}")
             continue
         if choice == "2":
-            slot = prompt_slot_name("load", save_manager)
+            slot = await prompt_slot_name("load", save_manager)
             if not slot:
                 continue
             try:
-                if save_manager.load(slot):
+                if await save_manager.load(slot):
                     return "loaded"
             except SaveError as exc:
                 emit_print(f"[!] {exc}")
@@ -1307,15 +1317,15 @@ def pause_menu(state, save_manager, open_options=None):
             save_manager.save(save_manager.QUICK_SLOT, label="Quick Save")
             continue
         if choice == "4":
-            if save_manager.load(save_manager.QUICK_SLOT):
+            if await save_manager.load(save_manager.QUICK_SLOT):
                 return "loaded"
             continue
         if choice == "5" and open_options is not None:
-            open_options()
+            await open_options()
             continue
         emit_print("Pick a valid pause option.")
 
-def show_history(state, page_size=5):
+async def show_history(state, page_size=5):
     entries = list(reversed(state.history))
     if not entries:
         emit_print("No history yet.")
@@ -1333,7 +1343,7 @@ def show_history(state, page_size=5):
             choice = entry.get("choice") or "—"
             emit_print(f"{idx}. {origin} -> {target} | {choice}")
         emit_print("N. Next  P. Previous  Q. Back")
-        selection = read_input("> ").strip().lower()
+        selection = (await read_input("> ")).strip().lower()
         if selection in {"q", "back", "quit"}:
             return
         if selection in {"n", "next"}:
@@ -1351,15 +1361,17 @@ def show_history(state, page_size=5):
         emit_print("Pick N, P, or Q.")
 
 
-def prompt_quit_to_title(save_manager):
+async def prompt_quit_to_title(save_manager):
     while True:
-        response = read_input("Save before returning to title? (y/n, or c to cancel): ").strip().lower()
+        response = (
+            await read_input("Save before returning to title? (y/n, or c to cancel): ")
+        ).strip().lower()
         if response in {"c", "cancel"}:
             return False
         if response in {"n", "no"}:
             return True
         if response in {"y", "yes"}:
-            slot = prompt_slot_name("save", save_manager)
+            slot = await prompt_slot_name("save", save_manager)
             if not slot:
                 return False
             try:
@@ -1370,7 +1382,7 @@ def prompt_quit_to_title(save_manager):
             return True
         emit_print("Enter Y, N, or C.")
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(description="Run the minimal CYOA engine.")
     parser.add_argument("world", nargs="?", default=DEFAULT_WORLD_PATH)
     parser.add_argument("--debug", action="store_true", help="Enable debug commands.")
@@ -1378,7 +1390,7 @@ def main():
     world_path = args.world
     debug_mode = args.debug
     world = load_world(world_path)
-    selection = select_profile()
+    selection = await select_profile()
     profile = load_profile(selection.profile_path)
     profile = normalize_profile(profile)
     save_profile(profile, selection.profile_path)
@@ -1405,16 +1417,16 @@ def main():
     state.debug = debug_mode
     state.world_path = world_path
 
-    def open_options_menu():
-        updated, changed = options_menu(
+    async def open_options_menu():
+        updated, changed = await options_menu(
             state.settings,
             apply_callback=lambda new_settings: apply_runtime_settings(state, new_settings),
         )
         if changed:
-            apply_runtime_settings(state, updated, announce=False)
+            await apply_runtime_settings(state, updated, announce=False)
         return changed
 
-    def initialize_run():
+    async def initialize_run():
         nonlocal state
         state = GameState(
             world,
@@ -1428,12 +1440,12 @@ def main():
         state.debug = debug_mode
         emit_print(f"\n=== {world['title']} ===")
         emit_print(f"[Profile] {selection.name}")
-        state.player["name"] = read_input("Name your character: ").strip() or "Traveler"
+        state.player["name"] = (await read_input("Name your character: ")).strip() or "Traveler"
 
         for fac in world.get("factions", []):
             state.player["rep"][fac] = 0
 
-        start_node, start_tags, start_id = pick_start(world, profile, open_options_menu)
+        start_node, start_tags, start_id = await pick_start(world, profile, open_options_menu)
         state.current_node = start_node
         state.start_id = start_id or start_node
         for t in canonicalize_tag_list(start_tags):
@@ -1454,7 +1466,7 @@ def main():
         return SaveManager(state, base_path=selection.save_root)
 
     while True:
-        save_manager = initialize_run()
+        save_manager = await initialize_run()
         save_manager.autosave()
 
         while True:
@@ -1463,16 +1475,16 @@ def main():
             if not node:
                 emit_print(f"[!] Missing node '{node_id}'. Exiting."); return
 
-            hostile_target = resolve_hostile_node(state, node_id, node)
+            hostile_target = await resolve_hostile_node(state, node_id, node)
             if hostile_target:
                 state.current_node = hostile_target
                 continue
 
-            apply_effects(node.get("on_enter"), state)
+            await apply_effects(node.get("on_enter"), state)
             if "__ending__" in state.player["flags"]:
                 emit_print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
-            visible = render_node(node, state)
+            visible = await render_node(node, state)
 
             save_manager.autosave()
 
@@ -1481,7 +1493,7 @@ def main():
                 record_seen_ending(state, ending_name)
                 emit_print(f"\n*** Ending reached: {ending_name} ***"); return
 
-            raw_choice = read_input("> ").strip()
+            raw_choice = (await read_input("> ")).strip()
             choice = raw_choice.lower()
             if state.debug and raw_choice.startswith("/"):
                 parts = raw_choice.split()
@@ -1493,7 +1505,7 @@ def main():
                     target = parts[1]
                     if target in world.get("nodes", {}) or target in world.get("endings", {}):
                         state.current_node = target
-                        emit_line(f"[#] Debug: moved to {target}.", state, allow_delay=False)
+                        await emit_line(f"[#] Debug: moved to {target}.", state, allow_delay=False)
                     else:
                         emit_print(f"[!] Unknown node '{target}'.")
                     continue
@@ -1504,7 +1516,7 @@ def main():
                     tag = canonical_tag(" ".join(parts[1:]).strip())
                     state.player["tags"].append(tag)
                     state.player["tags"] = canonicalize_tag_list(state.player["tags"])
-                    emit_effect_message(state, f"[#] Debug: Tag granted: {tag}")
+                    await emit_effect_message(state, f"[#] Debug: Tag granted: {tag}")
                     continue
                 if command == "/set":
                     if len(parts) < 3:
@@ -1518,7 +1530,7 @@ def main():
                         continue
                     amount = max(DEFAULT_REP_MIN, min(DEFAULT_REP_MAX, amount))
                     state.player.setdefault("rep", {})[faction] = amount
-                    emit_effect_message(
+                    await emit_effect_message(
                         state,
                         f"[#] Debug: {faction} reputation set to {amount}.",
                     )
@@ -1526,20 +1538,20 @@ def main():
                 emit_print("Unknown debug command.")
                 continue
             if choice == "q":
-                if prompt_quit_to_title(save_manager):
+                if await prompt_quit_to_title(save_manager):
                     break
                 continue
             if choice == "p":
-                action = pause_menu(state, save_manager, open_options_menu)
+                action = await pause_menu(state, save_manager, open_options_menu)
                 if action == "quit":
-                    if prompt_quit_to_title(save_manager):
+                    if await prompt_quit_to_title(save_manager):
                         break
                     continue
                 if action == "loaded":
                     save_manager.autosave()
                 continue
             if choice == "h":
-                show_history(state); continue
+                await show_history(state); continue
             if choice == "i":
                 emit_print("Traits:", ", ".join(state.player["traits"]) or "—")
                 emit_print("Key Items:", ", ".join(state.player["tags"]) or "—")
@@ -1556,11 +1568,11 @@ def main():
                     emit_print(f"[!] {exc}")
                 continue
             if choice == "l":
-                if save_manager.load(save_manager.QUICK_SLOT):
+                if await save_manager.load(save_manager.QUICK_SLOT):
                     save_manager.autosave()
                 continue
             if choice == "o":
-                open_options_menu(); continue
+                await open_options_menu(); continue
             if not choice.isdigit():
                 emit_print("Enter a number or P/S/L/I/H/O/Q."); continue
             idx = int(choice)
@@ -1571,7 +1583,7 @@ def main():
             action_type = resolve_action_type(ch, node_id, state)
             if getattr(state.settings, "doom_clock_enabled", True):
                 state.tick_counter = increment_ticks(state.tick_counter, action_type)
-            apply_effects(ch.get("effects"), state)
+            await apply_effects(ch.get("effects"), state)
             if "__ending__" in state.player["flags"]:
                 emit_print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
@@ -1589,6 +1601,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except KeyboardInterrupt:
         emit_print("\n[Interrupted] Bye.")

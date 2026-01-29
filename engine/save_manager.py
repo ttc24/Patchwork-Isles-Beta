@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import inspect
 import json
 import shutil
 import string
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Awaitable, Callable, Dict, List, Optional
 
 from .save_migrations import SaveMigrationError, migrate_save_payload
 
@@ -47,13 +48,13 @@ class SaveManager:
         state,
         base_path: Path | str = "saves",
         *,
-        input_func: Callable[[str], str] = input,
+        input_func: Callable[[str], str | Awaitable[str]] = input,
         print_func: Callable[[str], None] = print,
     ) -> None:
         self.state = state
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
-        self.input = input_func
+        self.input_func = input_func
         self.print = print_func
 
     # ---------- Public API ----------
@@ -72,7 +73,7 @@ class SaveManager:
             self.print(f"[{tag}] Slot '{normalized}' written to {save_path}.")
         return save_path
 
-    def load(self, slot: str, *, prefer_backup: bool = False) -> bool:
+    async def load(self, slot: str, *, prefer_backup: bool = False) -> bool:
         normalized = self._normalize_slot(slot)
         path = self._slot_path(normalized)
         save_path = path / self.SAVE_FILENAME
@@ -95,7 +96,7 @@ class SaveManager:
         except SaveMigrationError as err:
             if backup_path.exists() and target_path != backup_path:
                 self.print(f"[!] Save slot '{normalized}' migration failed: {err}")
-                if self._confirm_restore(normalized):
+                if await self._confirm_restore(normalized):
                     try:
                         payload = self._read_payload(backup_path)
                     except (SaveError, SaveMigrationError) as backup_err:
@@ -120,7 +121,7 @@ class SaveManager:
         except SaveCorruptError as err:
             if backup_path.exists() and target_path != backup_path:
                 self.print(f"[!] Save slot '{normalized}' is corrupted: {err}")
-                if self._confirm_restore(normalized):
+                if await self._confirm_restore(normalized):
                     try:
                         payload = self._read_payload(backup_path)
                     except (SaveError, SaveMigrationError) as backup_err:
@@ -291,11 +292,17 @@ class SaveManager:
         self._normalize_loaded_state(payload)
         self.state.ensure_consistency()
 
-    def _confirm_restore(self, slot: str) -> bool:
-        response = self.input(
-            f"Restore backup for slot '{slot}'? [y/N]: "
+    async def _confirm_restore(self, slot: str) -> bool:
+        response = (
+            await self._resolve_input(f"Restore backup for slot '{slot}'? [y/N]: ")
         ).strip().lower()
         return response in {"y", "yes"}
+
+    async def _resolve_input(self, prompt: str) -> str:
+        result = self.input_func(prompt)
+        if inspect.isawaitable(result):
+            return await result
+        return result
 
     def _read_metadata(self, path: Path) -> SlotMetadata:
         try:

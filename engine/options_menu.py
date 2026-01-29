@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Tuple
+import inspect
+from typing import Awaitable, Callable, Optional, Tuple
 
 from .settings import SETTINGS_PATH, Settings, save_settings
 
-MenuCallback = Callable[[Settings], None]
-InputFunc = Callable[[str], str]
+MenuCallback = Callable[[Settings], None | Awaitable[None]]
+InputFunc = Callable[[str], str | Awaitable[str]]
 PrintFunc = Callable[[str], None]
 
 
@@ -26,7 +27,7 @@ _ENTRY_SPEC = (
 )
 
 
-def options_menu(
+async def options_menu(
     current_settings: Settings,
     *,
     apply_callback: Optional[MenuCallback] = None,
@@ -51,7 +52,7 @@ def options_menu(
         )
         print_func("Press Esc to go back without further changes.")
 
-        raw = input_func("Options> ")
+        raw = await _resolve_input(input_func, "Options> ")
         if raw is None:
             raw = ""
         command = raw.strip().lower()
@@ -71,22 +72,22 @@ def options_menu(
         if command in {"a", "left", "h", "-"}:
             if _adjust_entry(working, field, entry_type, -1):
                 changed = True
-                _apply_callback(apply_callback, working)
+                await _apply_callback(apply_callback, working)
             continue
         if command in {"d", "right", "l", "+"}:
             if _adjust_entry(working, field, entry_type, 1):
                 changed = True
-                _apply_callback(apply_callback, working)
+                await _apply_callback(apply_callback, working)
             continue
         if command == "enter":
-            if _activate_entry(working, field, entry_type, input_func, print_func):
+            if await _activate_entry(working, field, entry_type, input_func, print_func):
                 changed = True
-                _apply_callback(apply_callback, working)
+                await _apply_callback(apply_callback, working)
             continue
         if command in {"r", "reset"}:
             if _reset_entry(working, field):
                 changed = True
-                _apply_callback(apply_callback, working)
+                await _apply_callback(apply_callback, working)
             continue
 
         print_func("Unrecognised input. Try W/S, A/D, Enter, R, or Esc.")
@@ -100,10 +101,19 @@ def options_menu(
     return current_settings, False
 
 
-def _apply_callback(callback: Optional[MenuCallback], settings: Settings) -> None:
+async def _apply_callback(callback: Optional[MenuCallback], settings: Settings) -> None:
     if callback is None:
         return
-    callback(settings.copy())
+    result = callback(settings.copy())
+    if inspect.isawaitable(result):
+        await result
+
+
+async def _resolve_input(input_func: InputFunc, prompt: str) -> str | None:
+    result = input_func(prompt)
+    if inspect.isawaitable(result):
+        return await result
+    return result
 
 
 def _format_value(value, entry_type: str) -> str:
@@ -140,7 +150,7 @@ def _adjust_entry(settings: Settings, field: str, entry_type: str, direction: in
     return getattr(settings, field) != previous
 
 
-def _activate_entry(
+async def _activate_entry(
     settings: Settings,
     field: str,
     entry_type: str,
@@ -149,13 +159,19 @@ def _activate_entry(
 ) -> bool:
     if entry_type == "volume":
         prompt = "Enter volume (0-100, blank to cancel): "
-        return _prompt_float(settings, field, prompt, 0.0, 1.0, input_func, print_func, divisor=100.0)
+        return await _prompt_float(
+            settings, field, prompt, 0.0, 1.0, input_func, print_func, divisor=100.0
+        )
     if entry_type == "scale":
         prompt = "Enter UI scale (0.5-2.0, blank to cancel): "
-        return _prompt_float(settings, field, prompt, 0.5, 2.0, input_func, print_func)
+        return await _prompt_float(
+            settings, field, prompt, 0.5, 2.0, input_func, print_func
+        )
     if entry_type == "text_speed":
         prompt = "Enter text speed (0-3, 0 = instant, blank to cancel): "
-        return _prompt_float(settings, field, prompt, 0.0, 3.0, input_func, print_func)
+        return await _prompt_float(
+            settings, field, prompt, 0.0, 3.0, input_func, print_func
+        )
     if entry_type in {"toggle", "window"}:
         before = getattr(settings, field)
         _toggle_entry(settings, field, entry_type)
@@ -180,7 +196,7 @@ def _toggle_entry(settings: Settings, field: str, entry_type: str) -> None:
     settings.clamp()
 
 
-def _prompt_float(
+async def _prompt_float(
     settings: Settings,
     field: str,
     prompt: str,
@@ -190,7 +206,7 @@ def _prompt_float(
     print_func: PrintFunc,
     divisor: float = 1.0,
 ) -> bool:
-    raw = input_func(prompt)
+    raw = await _resolve_input(input_func, prompt)
     if raw is None:
         return False
     stripped = raw.strip()
