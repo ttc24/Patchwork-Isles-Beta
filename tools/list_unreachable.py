@@ -35,6 +35,20 @@ def build_graph(world: dict) -> tuple[dict, list[str]]:
                 targets.append(target)
         return targets
 
+    def collect_choice_targets(target: object) -> list[str]:
+        if isinstance(target, str):
+            return [target]
+        if isinstance(target, list):
+            targets: list[str] = []
+            for entry in target:
+                if not isinstance(entry, dict):
+                    continue
+                entry_target = entry.get("target")
+                if isinstance(entry_target, str):
+                    targets.append(entry_target)
+            return targets
+        return []
+
     for node_id, node in nodes.items():
         for target in collect_teleport_targets(node.get("on_enter")):
             graph[node_id].append(target)
@@ -43,8 +57,7 @@ def build_graph(world: dict) -> tuple[dict, list[str]]:
                     f"Node {node_id} teleports to missing node {target}"
                 )
         for choice in node.get("choices", []) or []:
-            target = choice.get("target")
-            if isinstance(target, str):
+            for target in collect_choice_targets(choice.get("target")):
                 graph[node_id].append(target)
                 if target not in nodes:
                     missing_targets.append(
