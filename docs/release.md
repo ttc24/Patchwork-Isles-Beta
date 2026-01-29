@@ -13,6 +13,16 @@ python tools/build_release.py
 
 Artifacts land in `dist/` as `Patchwork-Isles-YYYYMMDD.zip`.
 
+## Build a standalone executable (PyInstaller)
+
+From the repo root:
+
+```bash
+python tools/build_exe.py
+```
+
+Artifacts land in `dist/` as `Patchwork-Isles-YYYYMMDD` (or `.exe` on Windows).
+
 ### Optional flags
 
 ```bash

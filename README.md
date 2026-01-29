@@ -43,6 +43,15 @@ python tools/build_release.py
 Share the resulting `dist/Patchwork-Isles-YYYYMMDD.zip`. For step-by-step usage, see
 [`docs/release.md`](docs/release.md).
 
+## Executable Build (PyInstaller)
+Create a standalone executable that bundles the engine with the `world/` content:
+
+```bash
+python tools/build_exe.py
+```
+
+The executable lands in `dist/` as `Patchwork-Isles-YYYYMMDD` (or `.exe` on Windows).
+
 ## Folder Map
 | Path | What lives here |
 | --- | --- |
