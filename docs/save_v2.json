@@ -78,8 +78,8 @@
               "type": "object",
               "additionalProperties": {
                 "type": "integer",
-                "minimum": -2,
-                "maximum": 2
+                "minimum": -10,
+                "maximum": 10
               }
             }
           },

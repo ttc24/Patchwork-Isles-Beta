@@ -2,7 +2,7 @@
 """
 Tag/Trait CYOA Engine — Minimal
 - Deterministic: choices are shown only if conditions pass (no greyed-out "teasers").
-- Core systems: Tags, Traits, Items, Flags, Faction Reputation (−2..+2).
+- Core systems: Tags, Traits, Items, Flags, Faction Reputation (−10..+10).
 - No dice, no risk meter, no clocks.
 - Save/Load included.
 Usage: python3 engine_min.py [world.json]
@@ -58,6 +58,18 @@ TAG_ALIASES = {
 }
 
 ANSI_RESET = "\033[0m"
+
+DEFAULT_REP_MIN = -10
+DEFAULT_REP_MAX = 10
+REPUTATION_TIERS = [
+    (-10, -8, "Nemesis"),
+    (-7, -5, "Hated"),
+    (-4, -2, "Wary"),
+    (-1, 1, "Neutral"),
+    (2, 4, "Favored"),
+    (5, 7, "Trusted"),
+    (8, 10, "Exalted"),
+]
 INLINE_COLOR_MAP = {
     "trait": "\033[36m",
     "traits": "\033[36m",
@@ -236,7 +248,7 @@ class GameState:
             "inventory": [],
             "resources": {},      # e.g., {"gold": 5}
             "flags": {},          # story state
-            "rep": {},            # faction -> -2..+2
+            "rep": {},            # faction -> -10..+10
         }
         self.current_node = None
         self.history = []
@@ -260,9 +272,7 @@ class GameState:
         self.ensure_consistency()
 
     def rep_str(self):
-        if not self.player["rep"]:
-            return "—"
-        return ", ".join(f"{k}:{v}" for k,v in sorted(self.player["rep"].items()))
+        return format_reputation_display(self.player["rep"])
 
     def summary(self):
         tags = ", ".join(self.player["tags"]) or "—"
@@ -541,7 +551,54 @@ def meets_condition(cond, state):
     return False
 
 # ---------- Effects (minimal set) ----------
-def clamp(n, lo, hi): return lo if n<lo else hi if n>hi else n
+def clamp(n, lo, hi): return lo if n < lo else hi if n > hi else n
+
+
+def get_rep_bounds(world):
+    if not isinstance(world, dict):
+        return DEFAULT_REP_MIN, DEFAULT_REP_MAX
+    bounds = world.get("rep_bounds")
+    if isinstance(bounds, dict):
+        rep_min = bounds.get("min", DEFAULT_REP_MIN)
+        rep_max = bounds.get("max", DEFAULT_REP_MAX)
+    else:
+        rep_min = world.get("rep_min", DEFAULT_REP_MIN)
+        rep_max = world.get("rep_max", DEFAULT_REP_MAX)
+    try:
+        rep_min = int(rep_min)
+        rep_max = int(rep_max)
+    except (TypeError, ValueError):
+        return DEFAULT_REP_MIN, DEFAULT_REP_MAX
+    if rep_min > rep_max:
+        rep_min, rep_max = rep_max, rep_min
+    return rep_min, rep_max
+
+
+def rep_tier_label(value, tiers=REPUTATION_TIERS):
+    try:
+        rep_value = int(value)
+    except (TypeError, ValueError):
+        rep_value = 0
+    for low, high, label in tiers:
+        if low <= rep_value <= high:
+            return label
+    if tiers:
+        return tiers[0][2] if rep_value < tiers[0][0] else tiers[-1][2]
+    return "Neutral"
+
+
+def format_reputation_display(rep_map):
+    if not isinstance(rep_map, dict) or not rep_map:
+        return "—"
+    parts = []
+    for faction, value in sorted(rep_map.items()):
+        try:
+            rep_value = int(value)
+        except (TypeError, ValueError):
+            rep_value = 0
+        label = rep_tier_label(rep_value)
+        parts.append(f"{faction}: {label} ({rep_value:+d})")
+    return ", ".join(parts)
 
 
 def get_relationship_multipliers(world):
@@ -659,10 +716,11 @@ def apply_rep_delta_with_ripple(state, faction, delta):
             if multiplier is None:
                 continue
             updates[other] = updates.get(other, 0) + delta * multiplier
+    rep_min, rep_max = get_rep_bounds(state.world)
     for fac, dv in updates.items():
         if dv == 0:
             continue
-        state.player["rep"][fac] = clamp(state.player["rep"].get(fac, 0) + dv, -2, 2)
+        state.player["rep"][fac] = clamp(state.player["rep"].get(fac, 0) + dv, rep_min, rep_max)
         emit_effect_message(
             state,
             f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {state.player['rep'][fac]}",
@@ -1217,6 +1275,7 @@ def main():
                 print("Traits:", ", ".join(state.player["traits"]) or "—")
                 print("Key Items:", ", ".join(state.player["tags"]) or "—")
                 print("Supplies:", format_resources(state.player.get("resources", {})))
+                print("Reputation:", format_reputation_display(state.player.get("rep", {})))
                 continue
             if choice == "t":
                 print("Tags:", ", ".join(state.player["tags"]) or "—")
