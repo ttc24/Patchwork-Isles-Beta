@@ -106,7 +106,7 @@ def normalize_nodes(
     duplicates = [node_id for node_id, count in Counter(node_ids).items() if count > 1]
     if duplicates:
         dup_list = ", ".join(sorted(set(duplicates)))
-        add_error("Nodes", ("nodes",), f"duplicate node IDs found: {dup_list}.")
+        add_error("Nodes", ("nodes",), f"Duplicate node IDs found: {dup_list}.")
 
     return nodes, errors
 

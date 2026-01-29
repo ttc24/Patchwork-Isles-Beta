@@ -49,7 +49,7 @@
                             "value": "Scout"
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "Travel Token"
                         }
                     ],
