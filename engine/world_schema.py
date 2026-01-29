@@ -309,9 +309,9 @@ def _validate_end_game(
     effect: Mapping[str, Any], context: str, endings: Mapping[str, Any]
 ) -> List[str]:
     errors: List[str] = []
-    ending = effect.get("ending")
+    ending = effect.get("value")
     if not is_non_empty_str(ending):
-        errors.append(f"{context}: 'end_game' requires a non-empty string 'ending'.")
+        errors.append(f"{context}: 'end_game' requires a non-empty string 'value'.")
     elif ending not in endings:
         errors.append(f"{context}: ending '{ending}' is not defined.")
     return errors
@@ -508,9 +508,9 @@ EFFECT_SPECS: Dict[str, EffectSpec] = {
         ),
     ),
     "end_game": EffectSpec(
-        required_fields=("ending",),
+        required_fields=("value",),
         optional_fields=(),
-        field_rules={"ending": "non-empty string ending id"},
+        field_rules={"value": "non-empty string ending id"},
         validate=lambda effect, context, nodes, endings: _validate_end_game(effect, context, endings),
     ),
     "unlock_start": EffectSpec(
