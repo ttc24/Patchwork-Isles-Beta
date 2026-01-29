@@ -22,6 +22,7 @@ _ENTRY_SPEC = (
     ("high_contrast", "High Contrast", "toggle"),
     ("reduce_animations", "Reduce Animations", "toggle"),
     ("caption_audio_cues", "Caption Audio Cues", "toggle"),
+    ("doom_clock_enabled", "Doom Clock", "toggle"),
 )
 
 
@@ -219,4 +220,3 @@ def _clamp_scale(value: float) -> float:
 
 def _clamp_text_speed(value: float) -> float:
     return max(0.0, min(3.0, float(value)))
-

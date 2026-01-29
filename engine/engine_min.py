@@ -639,8 +639,12 @@ def meets_condition(cond, state):
         end = cond.get("end", 0)
         return is_time_window(state.tick_counter, int(start), int(end))
     if t == "doom_reached":
+        if not getattr(state.settings, "doom_clock_enabled", True):
+            return False
         return doom_reached(state.tick_counter)
     if t == "doom_not_reached":
+        if not getattr(state.settings, "doom_clock_enabled", True):
+            return True
         return not doom_reached(state.tick_counter)
     return False
 
@@ -1557,7 +1561,8 @@ def main():
 
             ch = visible[idx-1]
             action_type = resolve_action_type(ch, node_id, state)
-            state.tick_counter = increment_ticks(state.tick_counter, action_type)
+            if getattr(state.settings, "doom_clock_enabled", True):
+                state.tick_counter = increment_ticks(state.tick_counter, action_type)
             apply_effects(ch.get("effects"), state)
             if "__ending__" in state.player["flags"]:
                 print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
