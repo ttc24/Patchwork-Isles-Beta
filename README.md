@@ -40,7 +40,8 @@
 | `docs/` | Lore bible, prompts, planning notes, and other supporting reference material. |
 | `tools/` | Authoring utilities (`validate.py`, `list_unreachable.py`, `merge_modules.py`, etc.). |
 | `playtests/` | Session transcripts and QA notes. |
-| `profile.json` | Local save data storing unlocked starts and seen endings. |
+| `profile.json` | Local save data storing unlocked starts and seen endings (generated on first run; ignored by git). |
+| `profile.example.json` | Template profile to copy if you want a prefilled save file. |
 
 ## Roadmap (toward v0.9 Beta)
 - [ ] Standalone quickstart world tailored for first-time players.
