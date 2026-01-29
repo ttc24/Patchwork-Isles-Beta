@@ -32,6 +32,7 @@ class Settings:
     high_contrast: bool = False
     reduce_animations: bool = False
     caption_audio_cues: bool = False
+    doom_clock_enabled: bool = True
 
     _WINDOW_MODES = {"windowed", "fullscreen"}
 
@@ -51,6 +52,7 @@ class Settings:
         self.high_contrast = bool(self.high_contrast)
         self.reduce_animations = bool(self.reduce_animations)
         self.caption_audio_cues = bool(self.caption_audio_cues)
+        self.doom_clock_enabled = bool(self.doom_clock_enabled)
         return self
 
     def copy(self) -> "Settings":
@@ -93,6 +95,7 @@ class Settings:
             high_contrast=_as_bool("high_contrast", False),
             reduce_animations=_as_bool("reduce_animations", False),
             caption_audio_cues=_as_bool("caption_audio_cues", False),
+            doom_clock_enabled=_as_bool("doom_clock_enabled", True),
         )
         return settings.clamp()
 
