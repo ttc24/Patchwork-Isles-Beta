@@ -95,6 +95,16 @@ def normalize_profile(profile):
     return profile
 
 
+def format_resources(resources, *, empty: str = "—") -> str:
+    if not isinstance(resources, dict) or not resources:
+        return empty
+    parts = []
+    for key, value in sorted(resources.items()):
+        label = str(key).title()
+        parts.append(f"{value} {label}")
+    return ", ".join(parts) if parts else empty
+
+
 def compute_line_width(settings: Settings) -> int:
     try:
         scale = float(getattr(settings, "ui_scale", 1.0))
@@ -221,19 +231,14 @@ class GameState:
         return ", ".join(f"{k}:{v}" for k,v in sorted(self.player["rep"].items()))
 
     def summary(self):
-        inv = ", ".join(self.player["inventory"]) if self.player["inventory"] else "—"
         tags = ", ".join(self.player["tags"]) or "—"
         traits = ", ".join(self.player["traits"]) or "—"
         flags = ", ".join(f"{k}={v}" for k,v in sorted(self.player["flags"].items())) or "—"
         rep = self.rep_str()
-        resources = self.player.get("resources", {})
-        if isinstance(resources, dict) and resources:
-            res = ", ".join(f"{k}:{v}" for k, v in sorted(resources.items()))
-        else:
-            res = "—"
+        res = format_resources(self.player.get("resources", {}))
         return (
-            f"HP:{self.player['hp']} | TAGS:[{tags}] | TRAITS:[{traits}] | REP: {rep} | "
-            f"INV: {inv} | RES: {res} | FLAGS: {flags}"
+            f"HP:{self.player['hp']} | KEY ITEMS:[{tags}] | TRAITS:[{traits}] | REP: {rep} | "
+            f"SUPPLIES: {res} | FLAGS: {flags}"
         )
 
     def apply_settings(self, settings):
@@ -1145,10 +1150,9 @@ def main():
             if choice == "h":
                 show_history(state); continue
             if choice == "i":
-                print("Inventory:", ", ".join(state.player["inventory"]) or "Empty")
-                print("Tags:", ", ".join(state.player["tags"]) or "—")
                 print("Traits:", ", ".join(state.player["traits"]) or "—")
-                print("Reputation:", state.rep_str())
+                print("Key Items:", ", ".join(state.player["tags"]) or "—")
+                print("Supplies:", format_resources(state.player.get("resources", {})))
                 continue
             if choice == "t":
                 print("Tags:", ", ".join(state.player["tags"]) or "—")
