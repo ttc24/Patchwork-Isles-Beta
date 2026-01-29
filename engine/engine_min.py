@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import textwrap
+from collections import Counter
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -321,10 +322,66 @@ def apply_runtime_settings(state: GameState, new_settings: Settings, *, announce
 
     return state.settings
 
+def _raise_world_validation(errors):
+    raise ValueError("Invalid world.json:\n- " + "\n- ".join(errors))
+
+
+def _normalize_nodes(raw_nodes):
+    nodes = {}
+    errors = []
+
+    if isinstance(raw_nodes, dict):
+        for node_id, payload in raw_nodes.items():
+            if not isinstance(node_id, str) or not node_id.strip():
+                errors.append("Node identifiers must be non-empty strings.")
+                continue
+            if not isinstance(payload, dict):
+                errors.append(f"Node '{node_id}' must be an object.")
+                continue
+            nodes[node_id] = payload
+    elif isinstance(raw_nodes, list):
+        for idx, entry in enumerate(raw_nodes, start=1):
+            if not isinstance(entry, dict):
+                errors.append(f"Node entry {idx} must be an object.")
+                continue
+            node_id = entry.get("id")
+            if not isinstance(node_id, str) or not node_id.strip():
+                errors.append(f"Node entry {idx} is missing a valid 'id'.")
+                continue
+            payload = dict(entry)
+            payload.pop("id", None)
+            nodes[node_id] = payload
+    else:
+        errors.append(
+            "'nodes' must be an object mapping IDs to node definitions or a list of node entries."
+        )
+
+    duplicates = [node_id for node_id, count in Counter(nodes.keys()).items() if count > 1]
+    if duplicates:
+        dup_list = ", ".join(sorted(set(duplicates)))
+        errors.append(f"Duplicate node IDs found: {dup_list}.")
+
+    if errors:
+        _raise_world_validation(errors)
+    return nodes
+
+
 def load_world(path):
     with open(path, "r", encoding="utf-8") as f:
         world = json.load(f)
-    assert "title" in world and "nodes" in world and isinstance(world["nodes"], dict), "Invalid world.json"
+    if not isinstance(world, dict):
+        _raise_world_validation(["World data must be a JSON object."])
+
+    errors = []
+    title = world.get("title")
+    if not isinstance(title, str) or not title.strip():
+        errors.append("World 'title' must be a non-empty string.")
+    if "nodes" not in world:
+        errors.append("World is missing required 'nodes'.")
+    if errors:
+        _raise_world_validation(errors)
+
+    world["nodes"] = _normalize_nodes(world.get("nodes"))
     world.setdefault("starts", [])
     world.setdefault("endings", {})
     world.setdefault("factions", [])
