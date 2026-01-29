@@ -910,6 +910,87 @@ def extract_choice_requirement_labels(condition):
         return [str(trait) for trait in traits if trait]
     return []
 
+def summarize_choice_requirements(condition):
+    if not condition:
+        return "None"
+    if isinstance(condition, list):
+        parts = []
+        for entry in condition:
+            summary = summarize_choice_requirements(entry)
+            if summary and summary != "None":
+                parts.append(summary)
+        return ", ".join(parts) if parts else "None"
+    if not isinstance(condition, dict):
+        return "None"
+    ctype = condition.get("type")
+    if ctype in {"has_tag", "has_trait"}:
+        labels = extract_choice_requirement_labels(condition)
+        if not labels:
+            return "None"
+        label_name = "Tags" if ctype == "has_tag" else "Traits"
+        return f"{label_name}: {'/'.join(labels)}"
+    if ctype == "has_advanced_tag":
+        value = condition.get("value")
+        if value is None:
+            return "Advanced Tags"
+        tags = value if isinstance(value, list) else [value]
+        tags = [tag for tag in canonicalize_tag_list(tags) if tag]
+        return f"Advanced Tags: {'/'.join(tags)}" if tags else "Advanced Tags"
+    if ctype == "missing_tag":
+        value = condition.get("value")
+        if value is None:
+            return "Missing Tag"
+        tags = value if isinstance(value, list) else [value]
+        tags = [tag for tag in canonicalize_tag_list(tags) if tag]
+        return f"Missing Tags: {'/'.join(tags)}" if tags else "Missing Tag"
+    if ctype == "flag_eq":
+        flag = condition.get("flag")
+        value = condition.get("value")
+        if flag is None:
+            return "Flag"
+        return f"Flag {flag}={value}"
+    if ctype == "profile_flag_eq":
+        flag = condition.get("flag")
+        value = condition.get("value")
+        if flag is None:
+            return "Profile Flag"
+        return f"Profile Flag {flag}={value}"
+    if ctype == "profile_flag_is_true":
+        flag = condition.get("flag")
+        return f"Profile Flag {flag}=True" if flag else "Profile Flag True"
+    if ctype == "profile_flag_is_false":
+        flag = condition.get("flag")
+        return f"Profile Flag {flag}=False" if flag else "Profile Flag False"
+    if ctype == "has_var_gte":
+        var = condition.get("var")
+        value = condition.get("value")
+        if not var:
+            return "Resource >=?"
+        return f"Resource {var}>={value}"
+    if ctype == "rep_at_least":
+        faction = condition.get("faction")
+        value = condition.get("value")
+        if faction is None:
+            return f"Rep >= {value}"
+        return f"Rep {faction}>={value}"
+    if ctype == "rep_at_least_count":
+        value = condition.get("value")
+        count = condition.get("count")
+        return f"Rep>={value} in {count}+ factions"
+    if ctype == "tick_counter_at_least":
+        return f"Ticks>={condition.get('value')}"
+    if ctype == "tick_counter_at_most":
+        return f"Ticks<={condition.get('value')}"
+    if ctype == "time_window":
+        start = condition.get("start")
+        end = condition.get("end")
+        return f"Time {start}-{end}"
+    if ctype == "doom_reached":
+        return "Doom Reached"
+    if ctype == "doom_not_reached":
+        return "Doom Not Reached"
+    return "None"
+
 def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
     settings = state.settings
@@ -945,6 +1026,10 @@ def render_node(node, state):
         if requirement_labels:
             joined_labels = "/".join(requirement_labels)
             choice_text = f"[{joined_labels}] {choice_text}"
+        if getattr(state, "debug", False):
+            target = resolve_choice_target(ch, state) or "None"
+            requirement_summary = summarize_choice_requirements(ch.get("condition"))
+            choice_text = f"{choice_text} (Target: {target} | Req: {requirement_summary})"
         choice_text = format_choice_text(choice_text, settings)
         choice_text = print_formatted(choice_text)
         if getattr(settings, "high_contrast", False):
