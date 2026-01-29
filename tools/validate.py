@@ -328,6 +328,14 @@ def validate_world(world: Mapping[str, Any]) -> List[str]:
         if not isinstance(node, Mapping):
             ctx.add(f"Node '{node_id}' must be an object.")
             continue
+        on_enter = node.get("on_enter")
+        if on_enter is not None:
+            if not isinstance(on_enter, Sequence) or isinstance(on_enter, (str, bytes)):
+                ctx.add(f"Node '{node_id}' on_enter must be a list of effect objects if present.")
+            else:
+                for eff_index, effect in enumerate(on_enter, start=1):
+                    eff_context = f"Node '{node_id}' on_enter effect {eff_index}"
+                    validate_effect(effect, eff_context, nodes, endings, ctx)
         choices = node.get("choices")
         if choices is None:
             continue
