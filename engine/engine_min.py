@@ -506,10 +506,10 @@ def render_node(node, state):
             "P. Pause",
             "S. Quick Save",
             "L. Quick Load",
-            "I. Inventory",
-            "T. Tags/Traits",
+            "I. Status",
+            "H. History",
             "O. Options",
-            "Q. Quit",
+            "Q. Quit to Title",
         ]
         print("  " + "    ".join(commands))
     return visible
@@ -623,7 +623,7 @@ def pause_menu(state, save_manager, open_options=None):
         if open_options is not None:
             print("5. Options")
         print("R. Resume")
-        print("Q. Quit")
+        print("Q. Quit to Title")
         choice = input("> ").strip().lower()
 
         if choice in {"r", "resume"}:
@@ -661,6 +661,61 @@ def pause_menu(state, save_manager, open_options=None):
             continue
         print("Pick a valid pause option.")
 
+def show_history(state, page_size=5):
+    entries = list(reversed(state.history))
+    if not entries:
+        print("No history yet.")
+        return
+    total_pages = max(1, (len(entries) + page_size - 1) // page_size)
+    page = 0
+    while True:
+        start = page * page_size
+        end = start + page_size
+        page_entries = entries[start:end]
+        print(f"\n=== History (Page {page + 1}/{total_pages}) ===")
+        for idx, entry in enumerate(page_entries, start=start + 1):
+            origin = entry.get("from") or "?"
+            target = entry.get("to") or "?"
+            choice = entry.get("choice") or "—"
+            print(f"{idx}. {origin} -> {target} | {choice}")
+        print("N. Next  P. Previous  Q. Back")
+        selection = input("> ").strip().lower()
+        if selection in {"q", "back", "quit"}:
+            return
+        if selection in {"n", "next"}:
+            if page + 1 < total_pages:
+                page += 1
+            else:
+                print("Already at the last page.")
+            continue
+        if selection in {"p", "prev", "previous"}:
+            if page > 0:
+                page -= 1
+            else:
+                print("Already at the first page.")
+            continue
+        print("Pick N, P, or Q.")
+
+
+def prompt_quit_to_title(save_manager):
+    while True:
+        response = input("Save before returning to title? (y/n, or c to cancel): ").strip().lower()
+        if response in {"c", "cancel"}:
+            return False
+        if response in {"n", "no"}:
+            return True
+        if response in {"y", "yes"}:
+            slot = prompt_slot_name("save", save_manager)
+            if not slot:
+                return False
+            try:
+                save_manager.save(slot)
+            except SaveError as exc:
+                print(f"[!] {exc}")
+                return False
+            return True
+        print("Enter Y, N, or C.")
+
 def main():
     world_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_WORLD_PATH
     world = load_world(world_path)
@@ -688,7 +743,6 @@ def main():
         world_seed=world_seed,
         active_area=active_area,
     )
-    save_manager = SaveManager(state, base_path=selection.save_root)
 
     def open_options_menu():
         updated, changed = options_menu(
@@ -699,103 +753,125 @@ def main():
             apply_runtime_settings(state, updated, announce=False)
         return changed
 
-    print(f"=== {world['title']} ===")
-    print(f"[Profile] {selection.name}")
-    state.player["name"] = input("Name your character: ").strip() or "Traveler"
+    def initialize_run():
+        nonlocal state
+        state = GameState(
+            world,
+            profile,
+            selection.profile_path,
+            settings,
+            world_seed=world_seed,
+            active_area=active_area,
+        )
+        print(f"\n=== {world['title']} ===")
+        print(f"[Profile] {selection.name}")
+        state.player["name"] = input("Name your character: ").strip() or "Traveler"
 
-    # Initialize faction rep
-    for fac in world.get("factions", []):
-        state.player["rep"][fac] = 0
+        for fac in world.get("factions", []):
+            state.player["rep"][fac] = 0
 
-    # Pick a start and seed starting tags
-    start_node, start_tags, start_id = pick_start(world, profile, open_options_menu)
-    state.current_node = start_node
-    state.start_id = start_id or start_node
-    for t in canonicalize_tag_list(start_tags):
-        if t not in state.player["tags"]:
-            state.player["tags"].append(t)
-    state.player["tags"] = canonicalize_tag_list(state.player["tags"])
+        start_node, start_tags, start_id = pick_start(world, profile, open_options_menu)
+        state.current_node = start_node
+        state.start_id = start_id or start_node
+        for t in canonicalize_tag_list(start_tags):
+            if t not in state.player["tags"]:
+                state.player["tags"].append(t)
+        state.player["tags"] = canonicalize_tag_list(state.player["tags"])
 
-    legacy_tags = canonicalize_tag_list(profile.get("legacy_tags", []))
-    newly_applied = []
-    for t in legacy_tags:
-        if t not in state.player["tags"]:
-            state.player["tags"].append(t)
-            newly_applied.append(t)
-    state.player["tags"] = canonicalize_tag_list(state.player["tags"])
-    if newly_applied:
-        print(f"[#] Legacy Tags active this run: {', '.join(newly_applied)}")
+        legacy_tags = canonicalize_tag_list(profile.get("legacy_tags", []))
+        newly_applied = []
+        for t in legacy_tags:
+            if t not in state.player["tags"]:
+                state.player["tags"].append(t)
+                newly_applied.append(t)
+        state.player["tags"] = canonicalize_tag_list(state.player["tags"])
+        if newly_applied:
+            print(f"[#] Legacy Tags active this run: {', '.join(newly_applied)}")
 
-    save_manager.autosave()
+        return SaveManager(state, base_path=selection.save_root)
 
     while True:
-        node_id = state.current_node
-        node = world["nodes"].get(node_id)
-        if not node:
-            print(f"[!] Missing node '{node_id}'. Exiting."); break
-
-        apply_effects(node.get("on_enter"), state)
-        if "__ending__" in state.player["flags"]:
-            print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); break
-
-        visible = render_node(node, state)
-
+        save_manager = initialize_run()
         save_manager.autosave()
 
-        if node_id in world.get("endings", {}):
-            ending_name = world["endings"][node_id]
-            record_seen_ending(state, ending_name)
-            print(f"\n*** Ending reached: {ending_name} ***"); break
+        while True:
+            node_id = state.current_node
+            node = world["nodes"].get(node_id)
+            if not node:
+                print(f"[!] Missing node '{node_id}'. Exiting."); return
 
-        choice = input("> ").strip().lower()
-        if choice == "q":
-            print("Goodbye!"); break
-        if choice == "p":
-            action = pause_menu(state, save_manager, open_options_menu)
-            if action == "quit":
-                print("Goodbye!"); break
-            if action == "loaded":
-                save_manager.autosave()
-            continue
-        if choice == "i":
-            print("Inventory:", ", ".join(state.player["inventory"]) or "Empty"); continue
-        if choice == "t":
-            print("Tags:", ", ".join(state.player["tags"]) or "—")
-            print("Traits:", ", ".join(state.player["traits"]) or "—"); continue
-        if choice == "s":
-            try:
-                save_manager.save(save_manager.QUICK_SLOT, label="Quick Save")
-            except SaveError as exc:
-                print(f"[!] {exc}")
-            continue
-        if choice == "l":
-            if save_manager.load(save_manager.QUICK_SLOT):
-                save_manager.autosave()
-            continue
-        if choice == "o":
-            open_options_menu(); continue
-        if not choice.isdigit():
-            print("Enter a number or P/S/L/I/T/O/Q."); continue
-        idx = int(choice)
-        if not (1 <= idx <= len(visible)):
-            print("Pick a valid choice number."); continue
+            apply_effects(node.get("on_enter"), state)
+            if "__ending__" in state.player["flags"]:
+                print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
-        ch = visible[idx-1]
-        apply_effects(ch.get("effects"), state)
-        if "__ending__" in state.player["flags"]:
-            print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); break
+            visible = render_node(node, state)
 
-        target = ch.get("target")
-        if not target:
-            print("[!] Choice had no target; staying put."); continue
+            save_manager.autosave()
 
-        state.record_transition(node_id, target, ch.get("text","choice"))
-        state.current_node = target
+            if node_id in world.get("endings", {}):
+                ending_name = world["endings"][node_id]
+                record_seen_ending(state, ending_name)
+                print(f"\n*** Ending reached: {ending_name} ***"); return
 
-        if state.player["hp"] <= 0:
-            demise = "A Short Tale"
-            record_seen_ending(state, demise)
-            print(f"\n*** You have perished. Ending: '{demise}' ***"); break
+            choice = input("> ").strip().lower()
+            if choice == "q":
+                if prompt_quit_to_title(save_manager):
+                    break
+                continue
+            if choice == "p":
+                action = pause_menu(state, save_manager, open_options_menu)
+                if action == "quit":
+                    if prompt_quit_to_title(save_manager):
+                        break
+                    continue
+                if action == "loaded":
+                    save_manager.autosave()
+                continue
+            if choice == "h":
+                show_history(state); continue
+            if choice == "i":
+                print("Inventory:", ", ".join(state.player["inventory"]) or "Empty")
+                print("Tags:", ", ".join(state.player["tags"]) or "—")
+                print("Traits:", ", ".join(state.player["traits"]) or "—")
+                print("Reputation:", state.rep_str())
+                continue
+            if choice == "t":
+                print("Tags:", ", ".join(state.player["tags"]) or "—")
+                print("Traits:", ", ".join(state.player["traits"]) or "—"); continue
+            if choice == "s":
+                try:
+                    save_manager.save(save_manager.QUICK_SLOT, label="Quick Save")
+                except SaveError as exc:
+                    print(f"[!] {exc}")
+                continue
+            if choice == "l":
+                if save_manager.load(save_manager.QUICK_SLOT):
+                    save_manager.autosave()
+                continue
+            if choice == "o":
+                open_options_menu(); continue
+            if not choice.isdigit():
+                print("Enter a number or P/S/L/I/H/O/Q."); continue
+            idx = int(choice)
+            if not (1 <= idx <= len(visible)):
+                print("Pick a valid choice number."); continue
+
+            ch = visible[idx-1]
+            apply_effects(ch.get("effects"), state)
+            if "__ending__" in state.player["flags"]:
+                print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
+
+            target = ch.get("target")
+            if not target:
+                print("[!] Choice had no target; staying put."); continue
+
+            state.record_transition(node_id, target, ch.get("text","choice"))
+            state.current_node = target
+
+            if state.player["hp"] <= 0:
+                demise = "A Short Tale"
+                record_seen_ending(state, demise)
+                print(f"\n*** You have perished. Ending: '{demise}' ***"); return
 
 if __name__ == "__main__":
     try:
