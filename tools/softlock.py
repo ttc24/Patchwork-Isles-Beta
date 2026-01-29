@@ -37,14 +37,39 @@ def _is_gated_condition(condition: Any) -> bool:
     return cond_type.startswith("profile_flag_")
 
 
-def _iter_choices(nodes: Mapping[str, Any]) -> Iterable[Tuple[str, int, Mapping[str, Any]]]:
+def _iter_choices(
+    nodes: Mapping[str, Any],
+) -> Iterable[Tuple[str, int, Mapping[str, Any], str, Any, Tuple[object, ...]]]:
     for node_id, node in nodes.items():
         choices = node.get("choices")
         if not isinstance(choices, Sequence) or isinstance(choices, (str, bytes)):
             continue
         for index, choice in enumerate(choices):
             if isinstance(choice, Mapping):
-                yield node_id, index, choice
+                target = choice.get("target")
+                if isinstance(target, str):
+                    yield (
+                        node_id,
+                        index,
+                        choice,
+                        target,
+                        None,
+                        ("nodes", node_id, "choices", index, "target"),
+                    )
+                elif isinstance(target, Sequence) and not isinstance(target, (str, bytes)):
+                    for target_index, entry in enumerate(target):
+                        if not isinstance(entry, Mapping):
+                            continue
+                        entry_target = entry.get("target")
+                        if isinstance(entry_target, str):
+                            yield (
+                                node_id,
+                                index,
+                                choice,
+                                entry_target,
+                                entry.get("condition"),
+                                ("nodes", node_id, "choices", index, "target", target_index),
+                            )
 
 
 def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
@@ -56,10 +81,11 @@ def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
     choice_meta: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     inbound_choices: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
-    for node_id, index, choice in _iter_choices(nodes):
-        target = choice.get("target")
+    for node_id, index, choice, target, entry_condition, target_path in _iter_choices(nodes):
         gated = _is_gated_condition(choice.get("condition"))
-        choice_path = path("nodes", node_id, "choices", index)
+        if entry_condition is not None:
+            gated = gated or _is_gated_condition(entry_condition)
+        choice_path = path(*target_path)
         meta = {
             "index": index,
             "target": target,
@@ -67,8 +93,7 @@ def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
             "path": choice_path,
         }
         choice_meta[node_id].append(meta)
-        if isinstance(target, str):
-            inbound_choices[target].append(meta)
+        inbound_choices[target].append(meta)
 
     warnings: List[str] = []
 
