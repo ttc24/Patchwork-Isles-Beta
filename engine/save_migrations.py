@@ -55,8 +55,23 @@ def _migrate_v0_to_v1(payload: Dict) -> Dict:
     return upgraded
 
 
+def _migrate_v1_to_v2(payload: Dict) -> Dict:
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    metadata = dict(metadata)
+    metadata["schema"] = "save_v2"
+    metadata["version"] = 2
+    metadata.setdefault("world_signature", None)
+    upgraded = dict(payload)
+    upgraded["version"] = 2
+    upgraded["metadata"] = metadata
+    return upgraded
+
+
 MIGRATIONS: Dict[int, Migration] = {
     0: _migrate_v0_to_v1,
+    1: _migrate_v1_to_v2,
 }
 
 
