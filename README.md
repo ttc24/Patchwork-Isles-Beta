@@ -32,6 +32,16 @@
    python tools/validate.py
    ```
 
+## Release Build (for players)
+Create a zip that includes a single `.pyz` launcher plus `run.sh` / `run.bat` helpers:
+
+```bash
+python tools/build_release.py
+```
+
+Share the resulting `dist/Patchwork-Isles-YYYYMMDD.zip`. For step-by-step usage, see
+[`docs/release.md`](docs/release.md).
+
 ## Folder Map
 | Path | What lives here |
 | --- | --- |
