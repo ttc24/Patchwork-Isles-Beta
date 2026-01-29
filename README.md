@@ -54,6 +54,11 @@ Share the resulting `dist/Patchwork-Isles-YYYYMMDD.zip`. For step-by-step usage,
 | `profile.json` | Local save data storing unlocked starts and seen endings (generated on first run; ignored by git). |
 | `profile.example.json` | Template profile to copy if you want a prefilled save file. |
 
+## Timekeeping & Doom Clock
+- Each run tracks a `tick_counter` in save data (default `0`). Actions advance time using centralized costs: move = 4 ticks, explore = 1 tick, rest = 8 ticks.
+- Use `tick_counter % 24` for cyclical logic like day/night. The `time_window` condition is available for authoring choices that should only appear during specific cycle windows.
+- The Doom clock triggers after `tick_counter > 500`; some late-game routes reroute or close once the threshold is exceeded.
+
 ## Roadmap (toward v0.9 Beta)
 - [ ] Standalone quickstart world tailored for first-time players.
 - [ ] Faction reputation UI polish and readable summaries.
@@ -70,7 +75,7 @@ See [`docs/planning/v0.9-beta-backlog.md`](docs/planning/v0.9-beta-backlog.md) f
 
 ## Authoring Quick Reference
 <!-- schema-docs:start -->
-- **Allowed condition types:** `has_item`, `missing_item`, `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`
+- **Allowed condition types:** `has_item`, `missing_item`, `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`, `tick_counter_at_least`, `tick_counter_at_most`, `time_window`, `doom_reached`, `doom_not_reached`
 - **Allowed effect types:** `add_item`, `remove_item`, `set_flag`, `add_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`
 - _Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes._
 <!-- schema-docs:end -->

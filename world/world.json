@@ -837,6 +837,38 @@
                     "target": "guestlaw_chamber"
                 },
                 {
+                    "text": "Browse the daytime stalls for petition gossip.",
+                    "condition": {
+                        "type": "time_window",
+                        "start": 6,
+                        "end": 17
+                    },
+                    "effects": [
+                        {
+                            "type": "set_flag",
+                            "flag": "root_market_day_stalls",
+                            "value": true
+                        }
+                    ],
+                    "target": "root_tangle_market"
+                },
+                {
+                    "text": "Slip into the night-ledger tents for whispered updates.",
+                    "condition": {
+                        "type": "time_window",
+                        "start": 18,
+                        "end": 5
+                    },
+                    "effects": [
+                        {
+                            "type": "set_flag",
+                            "flag": "root_market_night_whispers",
+                            "value": true
+                        }
+                    ],
+                    "target": "root_tangle_market"
+                },
+                {
                     "text": "(People-Reader) Whisper the judge's likely ruling to the crowd, earning a Freehands escort.",
                     "condition": {
                         "type": "has_trait",
@@ -966,6 +998,9 @@
                             "type": "flag_eq",
                             "flag": "compiled_testimony",
                             "value": true
+                        },
+                        {
+                            "type": "doom_not_reached"
                         }
                     ],
                     "effects": [
@@ -978,11 +1013,16 @@
                 },
                 {
                     "text": "Close the petitions early and audit the night ledgers yourself.",
-                    "condition": {
-                        "type": "flag_eq",
-                        "flag": "guestlaw_docket",
-                        "value": true
-                    },
+                    "condition": [
+                        {
+                            "type": "flag_eq",
+                            "flag": "guestlaw_docket",
+                            "value": true
+                        },
+                        {
+                            "type": "doom_not_reached"
+                        }
+                    ],
                     "effects": [
                         {
                             "type": "end_game",
@@ -990,6 +1030,30 @@
                         }
                     ],
                     "target": "ending_root_night_auditor"
+                },
+                {
+                    "text": "The Doom clock suspends the rota; assist the Assembly with evacuation notices.",
+                    "condition": {
+                        "type": "doom_reached"
+                    },
+                    "target": "doom_root_stewardship_closed"
+                }
+            ]
+        },
+        "doom_root_stewardship_closed": {
+            "title": "Assembly Evacuation Orders",
+            "text": "The petition tables are folded away as runners announce an emergency rota. You help post evacuation notices, guiding petitioners toward safer rootways.",
+            "on_enter": [
+                {
+                    "type": "set_flag",
+                    "flag": "doom_root_stewardship_closed",
+                    "value": true
+                }
+            ],
+            "choices": [
+                {
+                    "text": "Return to the Root Assembly market.",
+                    "target": "root_tangle_market"
                 }
             ]
         },
@@ -1280,10 +1344,15 @@
             "choices": [
                 {
                     "text": "(Arbiter) Ratify the guest-law compact for all hubs.",
-                    "condition": {
-                        "type": "has_tag",
-                        "value": "Arbiter"
-                    },
+                    "condition": [
+                        {
+                            "type": "has_tag",
+                            "value": "Arbiter"
+                        },
+                        {
+                            "type": "doom_not_reached"
+                        }
+                    ],
                     "effects": [
                         {
                             "type": "end_game",
@@ -1294,10 +1363,15 @@
                 },
                 {
                     "text": "Spend a prism shard to flood the dais with undeniable proof.",
-                    "condition": {
-                        "type": "has_item",
-                        "value": "prism shard"
-                    },
+                    "condition": [
+                        {
+                            "type": "has_item",
+                            "value": "prism shard"
+                        },
+                        {
+                            "type": "doom_not_reached"
+                        }
+                    ],
                     "effects": [
                         {
                             "type": "remove_item",
@@ -1323,10 +1397,15 @@
                 },
                 {
                     "text": "(People-Reader) Expose a hidden clause tying the Court to the Freehands.",
-                    "condition": {
-                        "type": "has_trait",
-                        "value": "People-Reader"
-                    },
+                    "condition": [
+                        {
+                            "type": "has_trait",
+                            "value": "People-Reader"
+                        },
+                        {
+                            "type": "doom_not_reached"
+                        }
+                    ],
                     "effects": [
                         {
                             "type": "rep_delta",
@@ -1346,6 +1425,13 @@
                     "target": "ending_guestlaw"
                 },
                 {
+                    "text": "The Doom clock halts the hearing; help evacuees into the rootways.",
+                    "condition": {
+                        "type": "doom_reached"
+                    },
+                    "target": "doom_guestlaw_shutdown"
+                },
+                {
                     "text": "(Light-Step) Slip along the balcony to spy on the Prism delegation's exit route.",
                     "condition": {
                         "type": "has_trait",
@@ -1359,6 +1445,23 @@
                         }
                     ],
                     "target": "luminous_grotto"
+                }
+            ]
+        },
+        "doom_guestlaw_shutdown": {
+            "title": "Guest-Law Evacuation",
+            "text": "The Assembly dims the verdict sigils; the Doom clock overrides procedure. Envoys file out beneath guarded boughs as you shepherd evacuees into the rootways.",
+            "on_enter": [
+                {
+                    "type": "set_flag",
+                    "flag": "doom_guestlaw_shutdown",
+                    "value": true
+                }
+            ],
+            "choices": [
+                {
+                    "text": "Return to the Root Assembly market.",
+                    "target": "root_tangle_market"
                 }
             ]
         },
@@ -8151,6 +8254,7 @@
                 },
                 {
                     "text": "Wake gently and drift back to the bazaar.",
+                    "action": "rest",
                     "target": "shed_market_shed_bazaar"
                 }
             ]
@@ -8509,6 +8613,7 @@
             "choices": [
                 {
                     "text": "Rest among the cocoons and listen to whispered rebirths.",
+                    "action": "rest",
                     "effects": [
                         {
                             "type": "set_flag",
@@ -8559,11 +8664,16 @@
                 },
                 {
                     "text": "Stay to run the cocoon rota and keep the teas brewing warm.",
-                    "condition": {
-                        "type": "flag_eq",
-                        "flag": "shed_market_hostel_rest",
-                        "value": true
-                    },
+                    "condition": [
+                        {
+                            "type": "flag_eq",
+                            "flag": "shed_market_hostel_rest",
+                            "value": true
+                        },
+                        {
+                            "type": "doom_not_reached"
+                        }
+                    ],
                     "effects": [
                         {
                             "type": "end_game",
@@ -8571,6 +8681,30 @@
                         }
                     ],
                     "target": "ending_cocoon_host_caretaker"
+                },
+                {
+                    "text": "The Doom clock closes the hostel; escort sleepers to the shelters.",
+                    "condition": {
+                        "type": "doom_reached"
+                    },
+                    "target": "doom_shed_market_closure"
+                }
+            ]
+        },
+        "doom_shed_market_closure": {
+            "title": "Hostel Closure",
+            "text": "Caretakers cinch the cocoons and prepare the sleeping travelers for evacuation. You walk the swaying lines, ushering the drowsy toward the shelters beyond the bazaar.",
+            "on_enter": [
+                {
+                    "type": "set_flag",
+                    "flag": "doom_shed_market_closure",
+                    "value": true
+                }
+            ],
+            "choices": [
+                {
+                    "text": "Return to the bazaar.",
+                    "target": "shed_market_shed_bazaar"
                 }
             ]
         },

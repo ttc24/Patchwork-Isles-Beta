@@ -22,12 +22,26 @@ if __package__ in (None, ""):
     from engine.save_manager import SaveError, SaveManager
     from engine.schema import normalize_nodes, validate_world
     from engine.settings import Settings, load_settings
+    from engine.timekeeping import (
+        ACTION_TICK_COSTS,
+        doom_reached,
+        increment_ticks,
+        is_time_window,
+        normalize_tick_counter,
+    )
 else:
     from .options_menu import options_menu
     from .profile_manager import load_profile, save_profile, select_profile
     from .save_manager import SaveError, SaveManager
     from .schema import normalize_nodes, validate_world
     from .settings import Settings, load_settings
+    from .timekeeping import (
+        ACTION_TICK_COSTS,
+        doom_reached,
+        increment_ticks,
+        is_time_window,
+        normalize_tick_counter,
+    )
 
 DEFAULT_WORLD_PATH = "world/world.json"
 BASE_LINE_WIDTH = 80
@@ -185,6 +199,9 @@ class GameState:
         self.start_id = None
         self.profile = profile
         self.profile_path = profile_path
+        self.tick_counter = normalize_tick_counter(
+            profile.get("tick_counter", 0) if isinstance(profile, dict) else 0
+        )
         self.settings = Settings()
         self.line_width = BASE_LINE_WIDTH
         self.window_mode = "windowed"
@@ -290,6 +307,7 @@ class GameState:
                 self.world_seed = int(self.world_seed)
             except (TypeError, ValueError):
                 self.world_seed = 0
+        self.tick_counter = normalize_tick_counter(getattr(self, "tick_counter", 0))
 
     def record_transition(self, origin, target, choice_text):
         entry = {
@@ -451,6 +469,18 @@ def meets_condition(cond, state):
     if t == "profile_flag_is_false":
         flags = state.profile.get("flags", {})
         return not bool(flags.get(cond.get("flag")))
+    if t == "tick_counter_at_least":
+        return normalize_tick_counter(state.tick_counter) >= int(cond.get("value", 0))
+    if t == "tick_counter_at_most":
+        return normalize_tick_counter(state.tick_counter) <= int(cond.get("value", 0))
+    if t == "time_window":
+        start = cond.get("start", 0)
+        end = cond.get("end", 0)
+        return is_time_window(state.tick_counter, int(start), int(end))
+    if t == "doom_reached":
+        return doom_reached(state.tick_counter)
+    if t == "doom_not_reached":
+        return not doom_reached(state.tick_counter)
     return False
 
 # ---------- Effects (minimal set) ----------
@@ -573,6 +603,16 @@ def list_choices(node, state):
         if meets_condition(ch.get("condition"), state):
             visible.append(ch)
     return visible
+
+
+def resolve_action_type(choice, current_node):
+    action = choice.get("action")
+    if isinstance(action, str) and action in ACTION_TICK_COSTS:
+        return action
+    target = choice.get("target")
+    if target and target != current_node:
+        return "move"
+    return "explore"
 
 def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
@@ -969,6 +1009,8 @@ def main():
                 print("Pick a valid choice number."); continue
 
             ch = visible[idx-1]
+            action_type = resolve_action_type(ch, node_id)
+            state.tick_counter = increment_ticks(state.tick_counter, action_type)
             apply_effects(ch.get("effects"), state)
             if "__ending__" in state.player["flags"]:
                 print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
