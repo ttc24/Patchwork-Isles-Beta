@@ -219,6 +219,25 @@ def _validate_rep_at_least_count(condition: Mapping[str, Any], context: str) -> 
     return errors
 
 
+def _validate_tick_counter(condition: Mapping[str, Any], context: str, name: str) -> List[str]:
+    errors: List[str] = []
+    value = condition.get("value")
+    if not isinstance(value, int):
+        errors.append(f"{context}: '{name}' requires an integer 'value'.")
+    return errors
+
+
+def _validate_time_window(condition: Mapping[str, Any], context: str) -> List[str]:
+    errors: List[str] = []
+    start = condition.get("start")
+    end = condition.get("end")
+    if not isinstance(start, int):
+        errors.append(f"{context}: 'time_window' requires an integer 'start'.")
+    if not isinstance(end, int):
+        errors.append(f"{context}: 'time_window' requires an integer 'end'.")
+    return errors
+
+
 def _validate_add_item(effect: Mapping[str, Any], context: str) -> List[str]:
     errors: List[str] = []
     value = effect.get("value")
@@ -379,6 +398,40 @@ CONDITION_SPECS: Dict[str, ConditionSpec] = {
         validate=lambda condition, context: _validate_profile_flag_bool(
             condition, context, "profile_flag_is_false"
         ),
+    ),
+    "tick_counter_at_least": ConditionSpec(
+        required_fields=("value",),
+        optional_fields=(),
+        field_rules={"value": "integer tick counter minimum"},
+        validate=lambda condition, context: _validate_tick_counter(
+            condition, context, "tick_counter_at_least"
+        ),
+    ),
+    "tick_counter_at_most": ConditionSpec(
+        required_fields=("value",),
+        optional_fields=(),
+        field_rules={"value": "integer tick counter maximum"},
+        validate=lambda condition, context: _validate_tick_counter(
+            condition, context, "tick_counter_at_most"
+        ),
+    ),
+    "time_window": ConditionSpec(
+        required_fields=("start", "end"),
+        optional_fields=(),
+        field_rules={"start": "integer start hour", "end": "integer end hour"},
+        validate=_validate_time_window,
+    ),
+    "doom_reached": ConditionSpec(
+        required_fields=(),
+        optional_fields=(),
+        field_rules={},
+        validate=lambda condition, context: [],
+    ),
+    "doom_not_reached": ConditionSpec(
+        required_fields=(),
+        optional_fields=(),
+        field_rules={},
+        validate=lambda condition, context: [],
     ),
 }
 

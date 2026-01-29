@@ -36,6 +36,7 @@ def default_profile() -> dict:
         "legacy_tags": [],
         "seen_endings": [],
         "flags": {},
+        "tick_counter": 0,
     }
 
 
@@ -75,6 +76,7 @@ def load_profile(path: Path | str) -> dict:
     data.setdefault("legacy_tags", [])
     data.setdefault("seen_endings", [])
     data.setdefault("flags", {})
+    data.setdefault("tick_counter", 0)
     save_profile(data, path)
     return data
 

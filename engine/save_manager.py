@@ -230,6 +230,7 @@ class SaveManager:
                 "player": copy.deepcopy(self.state.player),
                 "active_area": getattr(self.state, "active_area", None),
                 "world_seed": getattr(self.state, "world_seed", 0),
+                "tick_counter": getattr(self.state, "tick_counter", 0),
             },
         }
         return payload
@@ -286,6 +287,7 @@ class SaveManager:
         self.state.start_id = state_blob.get("start_id")
         self.state.active_area = state_blob.get("active_area", self.state.active_area)
         self.state.world_seed = state_blob.get("world_seed", self.state.world_seed)
+        self.state.tick_counter = state_blob.get("tick_counter", self.state.tick_counter)
         self._normalize_loaded_state(payload)
         self.state.ensure_consistency()
 
