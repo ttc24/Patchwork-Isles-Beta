@@ -38,7 +38,7 @@ def infer_hub(node_id: str) -> str:
 
 def iter_has_tag_conditions(payload: Any) -> Iterable[Dict[str, Any]]:
     if isinstance(payload, dict):
-        if payload.get("type") == "has_tag":
+        if payload.get("type") in {"has_tag", "has_advanced_tag"}:
             yield payload
         for value in payload.values():
             yield from iter_has_tag_conditions(value)
