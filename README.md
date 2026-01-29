@@ -53,6 +53,7 @@
 - [ ] Playtest feedback incorporation loop with tracked issues.
 - [ ] Audio/visual dressing for key beats (accessibility friendly).
 - [ ] Localization-ready strings and tooling.
+- [ ] Spec: [v0.9 minimum playable beta](docs/planning/v0.9-min-playable-beta.md).
 
 See [`docs/planning/v0.9-beta-backlog.md`](docs/planning/v0.9-beta-backlog.md) for the full milestone issue list.
 
