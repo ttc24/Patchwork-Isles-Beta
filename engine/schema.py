@@ -46,6 +46,7 @@ def simple_value(value: Any) -> bool:
 def normalize_nodes(raw_nodes: Any) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
     nodes: Dict[str, Dict[str, Any]] = {}
     ctx = ValidationContext()
+    node_ids: List[str] = []
 
     if isinstance(raw_nodes, dict):
         for node_id, payload in raw_nodes.items():
@@ -56,6 +57,7 @@ def normalize_nodes(raw_nodes: Any) -> Tuple[Dict[str, Dict[str, Any]], List[str
                 ctx.add(f"Node '{node_id}' must be an object.")
                 continue
             nodes[node_id] = payload
+        node_ids = list(nodes.keys())
     elif isinstance(raw_nodes, list):
         for idx, entry in enumerate(raw_nodes, start=1):
             if not isinstance(entry, MutableMapping):
@@ -65,13 +67,14 @@ def normalize_nodes(raw_nodes: Any) -> Tuple[Dict[str, Dict[str, Any]], List[str
             if not is_non_empty_str(node_id):
                 ctx.add(f"Node entry {idx} is missing a valid 'id'.")
                 continue
+            node_ids.append(node_id)
             payload = dict(entry)
             payload.pop("id", None)
             nodes[node_id] = payload
     else:
         ctx.add("'nodes' must be an object mapping IDs to node definitions or a list of node entries.")
 
-    duplicates = [node_id for node_id, count in Counter(nodes.keys()).items() if count > 1]
+    duplicates = [node_id for node_id, count in Counter(node_ids).items() if count > 1]
     if duplicates:
         dup_list = ", ".join(sorted(set(duplicates)))
         ctx.add(f"Duplicate node IDs found: {dup_list}.")
@@ -271,6 +274,7 @@ def validate_choice(
 def validate_world(world: Mapping[str, Any]) -> List[str]:
     ctx = ValidationContext()
 
+    require(is_non_empty_str(world.get("title")), "World data must include a non-empty 'title'.", ctx)
     require("nodes" in world, "World data must include a 'nodes' section.", ctx)
     endings = world.get("endings")
     if endings is None:
