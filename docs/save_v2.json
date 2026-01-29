@@ -1,11 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Patchwork Isles Save File v1",
-  "description": "Schema describing version 1 save files with player progress, quest state, and world context.",
+  "title": "Patchwork Isles Save File v2",
+  "description": "Schema describing version 2 save files with player progress, quest state, and world context.",
   "type": "object",
   "required": ["version", "metadata", "state"],
   "properties": {
-    "version": {"type": "integer", "const": 1},
+    "version": {"type": "integer", "const": 2},
     "metadata": {
       "type": "object",
       "required": [
@@ -15,16 +15,18 @@
         "saved_at",
         "world_title",
         "world_seed",
+        "world_signature",
         "active_area",
         "player_name"
       ],
       "properties": {
-        "schema": {"type": "string", "enum": ["save_v1"]},
-        "version": {"type": "integer", "const": 1},
+        "schema": {"type": "string", "enum": ["save_v2"]},
+        "version": {"type": "integer", "const": 2},
         "save_slot": {"type": "string"},
         "saved_at": {"type": "string", "format": "date-time"},
         "world_title": {"type": ["string", "null"]},
         "world_seed": {"type": "integer"},
+        "world_signature": {"type": ["string", "null"]},
         "active_area": {"type": ["string", "null"]},
         "player_name": {"type": ["string", "null"]}
       },

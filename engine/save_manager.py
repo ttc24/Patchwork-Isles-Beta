@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import string
@@ -33,9 +34,10 @@ class SlotMetadata:
 class SaveManager:
     """Handle save/load/autosave orchestration with backups."""
 
-    SCHEMA_VERSION = 1
-    SAVE_FILENAME = "save_v1.json"
-    BACKUP_FILENAME = "save_v1.bak"
+    SCHEMA_VERSION = 2
+    SAVE_FILENAME = "save_v2.json"
+    BACKUP_FILENAME = "save_v2.bak"
+    LEGACY_SAVE_FILENAMES = ("save_v1.json",)
     AUTOSAVE_SLOT = "autosave"
     QUICK_SLOT = "quick"
     _VALID_SLOT_CHARS = set(string.ascii_lowercase + string.digits + "-_")
@@ -75,13 +77,18 @@ class SaveManager:
         path = self._slot_path(normalized)
         save_path = path / self.SAVE_FILENAME
         backup_path = path / self.BACKUP_FILENAME
+        legacy_path = self._legacy_save_path(path)
+        legacy_backup = self._backup_path_for(legacy_path) if legacy_path else None
 
         target_path = backup_path if prefer_backup else save_path
         if not target_path.exists():
-            if not save_path.exists():
+            if save_path.exists():
+                target_path = save_path
+            elif legacy_path and legacy_path.exists():
+                target_path = legacy_backup if prefer_backup and legacy_backup else legacy_path
+            else:
                 self.print(f"[!] No save found for slot '{normalized}'.")
                 return False
-            target_path = save_path
 
         try:
             payload = self._read_payload(target_path)
@@ -159,9 +166,13 @@ class SaveManager:
             if not include_special and name == self.AUTOSAVE_SLOT:
                 continue
             main_path = child / self.SAVE_FILENAME
+            target_path = main_path
             if not main_path.exists():
-                continue
-            metadata = self._read_metadata(main_path)
+                legacy_path = self._legacy_save_path(child)
+                if legacy_path is None:
+                    continue
+                target_path = legacy_path
+            metadata = self._read_metadata(target_path)
             slots.append(metadata)
         return slots
 
@@ -180,11 +191,23 @@ class SaveManager:
     def _slot_path(self, slot: str) -> Path:
         return self.base_path / slot
 
+    def _legacy_save_path(self, slot_path: Path) -> Optional[Path]:
+        for name in self.LEGACY_SAVE_FILENAMES:
+            candidate = slot_path / name
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _backup_path_for(self, save_path: Optional[Path]) -> Optional[Path]:
+        if save_path is None:
+            return None
+        return save_path.with_suffix(save_path.suffix + ".bak")
+
     def _build_payload(self, slot: str) -> Dict:
         self.state.ensure_consistency()
         history = copy.deepcopy(self.state.history)
         metadata = {
-            "schema": "save_v1",
+            "schema": "save_v2",
             "version": self.SCHEMA_VERSION,
             "save_slot": slot,
             "saved_at": datetime.now(timezone.utc).isoformat(),
@@ -192,6 +215,7 @@ class SaveManager:
             if isinstance(self.state.world, dict)
             else None,
             "world_seed": getattr(self.state, "world_seed", 0),
+            "world_signature": self._compute_world_signature(),
             "active_area": getattr(self.state, "active_area", None),
             "player_name": self.state.player.get("name"),
         }
@@ -262,6 +286,7 @@ class SaveManager:
         self.state.start_id = state_blob.get("start_id")
         self.state.active_area = state_blob.get("active_area", self.state.active_area)
         self.state.world_seed = state_blob.get("world_seed", self.state.world_seed)
+        self._normalize_loaded_state(payload)
         self.state.ensure_consistency()
 
     def _confirm_restore(self, slot: str) -> bool:
@@ -282,3 +307,61 @@ class SaveManager:
             player_name=metadata.get("player_name"),
             active_area=metadata.get("active_area"),
         )
+
+    def _compute_world_signature(self) -> Optional[str]:
+        if not isinstance(self.state.world, dict):
+            return None
+        try:
+            serialized = json.dumps(self.state.world, sort_keys=True, separators=(",", ":"))
+        except (TypeError, ValueError):
+            return None
+        return hashlib.sha1(serialized.encode("utf-8")).hexdigest()
+
+    def _normalize_loaded_state(self, payload: Dict) -> None:
+        metadata = payload.get("metadata", {}) if isinstance(payload, dict) else {}
+        saved_signature = metadata.get("world_signature")
+        current_signature = self._compute_world_signature()
+        if saved_signature and current_signature and saved_signature != current_signature:
+            self.print(
+                "[!] Save file world signature differs from the active world. "
+                "Attempting to load with safety checks."
+            )
+
+        if not isinstance(self.state.player, dict):
+            self.state.player = {}
+        if not isinstance(self.state.player.get("rep"), dict):
+            self.state.player["rep"] = {}
+        factions = []
+        if isinstance(self.state.world, dict):
+            factions = self.state.world.get("factions", []) or []
+        for faction in factions:
+            self.state.player["rep"].setdefault(faction, 0)
+
+        if isinstance(self.state.world, dict):
+            nodes = self.state.world.get("nodes", {})
+        else:
+            nodes = {}
+        if self.state.current_node not in nodes:
+            fallback = self._default_start_node()
+            self.print(
+                f"[!] Save node '{self.state.current_node}' missing in current world. "
+                f"Resetting to '{fallback}'."
+            )
+            self.state.current_node = fallback
+            self.state.start_id = fallback
+            self.state.history = []
+            if isinstance(self.state.world, dict):
+                self.state.active_area = self.state.world.get("title", self.state.active_area)
+
+    def _default_start_node(self) -> str:
+        if not isinstance(self.state.world, dict):
+            return "start"
+        starts = self.state.world.get("starts", [])
+        if isinstance(starts, list):
+            for entry in starts:
+                if not isinstance(entry, dict):
+                    continue
+                node = entry.get("node") or entry.get("id")
+                if isinstance(node, str) and node.strip():
+                    return node
+        return "start"
