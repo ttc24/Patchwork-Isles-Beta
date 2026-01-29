@@ -10,7 +10,6 @@ Usage: python3 engine_min.py [world.json]
 
 import hashlib
 import json
-import os
 import sys
 import textwrap
 from pathlib import Path
@@ -18,17 +17,18 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from engine.options_menu import options_menu
+    from engine.profile_manager import load_profile, save_profile, select_profile
     from engine.save_manager import SaveError, SaveManager
     from engine.schema import normalize_nodes, validate_world
     from engine.settings import Settings, load_settings
 else:
     from .options_menu import options_menu
+    from .profile_manager import load_profile, save_profile, select_profile
     from .save_manager import SaveError, SaveManager
     from .schema import normalize_nodes, validate_world
     from .settings import Settings, load_settings
 
 DEFAULT_WORLD_PATH = "world/world.json"
-PROFILE_PATH = "profile.json"
 BASE_LINE_WIDTH = 80
 MIN_LINE_WIDTH = 50
 MAX_LINE_WIDTH = 120
@@ -62,6 +62,23 @@ def canonicalize_tag_value(value):
     return value
 
 
+def normalize_profile(profile):
+    unlocked = []
+    for sid in profile.get("unlocked_starts", []):
+        if isinstance(sid, str) and sid not in unlocked:
+            unlocked.append(sid)
+    profile["unlocked_starts"] = unlocked
+
+    profile["legacy_tags"] = canonicalize_tag_list(profile.get("legacy_tags", []))
+
+    seen = []
+    for ending in profile.get("seen_endings", []):
+        if isinstance(ending, str) and ending not in seen:
+            seen.append(ending)
+    profile["seen_endings"] = seen
+    return profile
+
+
 def compute_line_width(settings: Settings) -> int:
     try:
         scale = float(getattr(settings, "ui_scale", 1.0))
@@ -69,45 +86,6 @@ def compute_line_width(settings: Settings) -> int:
         scale = 1.0
     width = int(round(BASE_LINE_WIDTH * scale))
     return max(MIN_LINE_WIDTH, min(MAX_LINE_WIDTH, width))
-
-
-def default_profile():
-    return {
-        "unlocked_starts": [],
-        "legacy_tags": [],
-        "seen_endings": [],
-        "flags": {},
-    }
-
-
-def load_profile(path=PROFILE_PATH):
-    if not os.path.exists(path):
-        profile = default_profile()
-        save_profile(profile, path)
-        return profile
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    data.setdefault("unlocked_starts", [])
-    data.setdefault("legacy_tags", [])
-    data.setdefault("seen_endings", [])
-    data.setdefault("flags", {})
-
-    unlocked = []
-    for sid in data["unlocked_starts"]:
-        if isinstance(sid, str) and sid not in unlocked:
-            unlocked.append(sid)
-    data["unlocked_starts"] = unlocked
-
-    data["legacy_tags"] = canonicalize_tag_list(data["legacy_tags"])
-
-    seen = []
-    for ending in data["seen_endings"]:
-        if isinstance(ending, str) and ending not in seen:
-            seen.append(ending)
-    data["seen_endings"] = seen
-
-    save_profile(data, path)
-    return data
 
 
 def merge_profile_starts(world, profile):
@@ -131,12 +109,6 @@ def record_seen_ending(state, ending_name):
     if ending_name not in seen:
         seen.append(ending_name)
         save_profile(state.profile, state.profile_path)
-
-
-def save_profile(profile, path=PROFILE_PATH):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(profile, f, indent=2)
-        f.write("\n")
 
 
 class GameState:
@@ -692,7 +664,10 @@ def pause_menu(state, save_manager, open_options=None):
 def main():
     world_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_WORLD_PATH
     world = load_world(world_path)
-    profile = load_profile(PROFILE_PATH)
+    selection = select_profile()
+    profile = load_profile(selection.profile_path)
+    profile = normalize_profile(profile)
+    save_profile(profile, selection.profile_path)
     merge_profile_starts(world, profile)
     settings = load_settings()
     world_seed = world.get("seed") if isinstance(world, dict) else None
@@ -708,12 +683,12 @@ def main():
     state = GameState(
         world,
         profile,
-        PROFILE_PATH,
+        selection.profile_path,
         settings,
         world_seed=world_seed,
         active_area=active_area,
     )
-    save_manager = SaveManager(state)
+    save_manager = SaveManager(state, base_path=selection.save_root)
 
     def open_options_menu():
         updated, changed = options_menu(
@@ -725,6 +700,7 @@ def main():
         return changed
 
     print(f"=== {world['title']} ===")
+    print(f"[Profile] {selection.name}")
     state.player["name"] = input("Name your character: ").strip() or "Traveler"
 
     # Initialize faction rep
