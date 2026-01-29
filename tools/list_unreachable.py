@@ -10,9 +10,10 @@ def load_world(path: Path) -> dict:
         return json.load(f)
 
 
-def build_graph(world: dict) -> dict:
+def build_graph(world: dict) -> tuple[dict, list[str]]:
     nodes = world.get("nodes", {})
     graph = {node_id: [] for node_id in nodes}
+    missing_targets: list[str] = []
 
     def collect_teleport_targets(effects: object) -> list[str]:
         if not effects:
@@ -30,20 +31,32 @@ def build_graph(world: dict) -> dict:
             if effect.get("type") != "teleport":
                 continue
             target = effect.get("target")
-            if isinstance(target, str) and target in nodes:
+            if isinstance(target, str):
                 targets.append(target)
         return targets
 
     for node_id, node in nodes.items():
         for target in collect_teleport_targets(node.get("on_enter")):
             graph[node_id].append(target)
+            if target not in nodes:
+                missing_targets.append(
+                    f"Node {node_id} teleports to missing node {target}"
+                )
         for choice in node.get("choices", []) or []:
             target = choice.get("target")
-            if isinstance(target, str) and target in nodes:
+            if isinstance(target, str):
                 graph[node_id].append(target)
+                if target not in nodes:
+                    missing_targets.append(
+                        f"Node {node_id} choice targets missing node {target}"
+                    )
             for target in collect_teleport_targets(choice.get("effects")):
                 graph[node_id].append(target)
-    return graph
+                if target not in nodes:
+                    missing_targets.append(
+                        f"Node {node_id} teleports to missing node {target}"
+                    )
+    return graph, missing_targets
 
 
 def traverse_from(start_node: str, graph: dict) -> set:
@@ -63,7 +76,7 @@ def traverse_from(start_node: str, graph: dict) -> set:
 def main() -> None:
     world_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_WORLD_PATH
     world = load_world(world_path)
-    graph = build_graph(world)
+    graph, missing_targets = build_graph(world)
     starts = world.get("starts", [])
 
     all_reached = set()
@@ -85,6 +98,12 @@ def main() -> None:
             print(f"  - {node_id}")
     else:
         print("All nodes reachable from the defined starts.")
+
+    if missing_targets:
+        print("Missing targets:")
+        for message in missing_targets:
+            print(f"  - {message}")
+        sys.exit(2)
 
 
 if __name__ == "__main__":
