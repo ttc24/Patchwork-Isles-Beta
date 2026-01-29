@@ -12,11 +12,7 @@
 
 ## Quick Start
 1. **Install Python 3.8 or newer.** The engine is pure Python with no third-party dependencies required for runtime.
-2. **Clone the repo and enter the folder.**
-   ```bash
-   git clone https://github.com/your-org/Patchwork-Isles.git
-   cd Patchwork-Isles
-   ```
+2. **Clone this repo and enter the folder.**
 3. **(Optional) Create and activate a virtual environment.**
    ```bash
    python -m venv .venv
