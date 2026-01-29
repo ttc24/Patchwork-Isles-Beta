@@ -138,6 +138,9 @@ def normalize_profile(profile):
         if isinstance(ending, str) and ending not in seen:
             seen.append(ending)
     profile["seen_endings"] = seen
+    if not isinstance(profile.get("flags"), dict):
+        profile["flags"] = {}
+    profile["tick_counter"] = normalize_tick_counter(profile.get("tick_counter", 0))
     return profile
 
 

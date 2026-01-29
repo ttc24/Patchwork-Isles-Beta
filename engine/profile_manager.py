@@ -40,6 +40,25 @@ def default_profile() -> dict:
     }
 
 
+def _normalize_profile(data: dict) -> dict:
+    if not isinstance(data.get("unlocked_starts"), list):
+        data["unlocked_starts"] = []
+    if not isinstance(data.get("legacy_tags"), list):
+        data["legacy_tags"] = []
+    if not isinstance(data.get("seen_endings"), list):
+        data["seen_endings"] = []
+    if not isinstance(data.get("flags"), dict):
+        data["flags"] = {}
+    tick_counter = data.get("tick_counter", 0)
+    if not isinstance(tick_counter, int):
+        try:
+            tick_counter = int(tick_counter)
+        except (TypeError, ValueError):
+            tick_counter = 0
+    data["tick_counter"] = tick_counter
+    return data
+
+
 def save_profile(profile: dict, path: Path | str, *, keep_backup: bool = True) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,6 +96,7 @@ def load_profile(path: Path | str) -> dict:
     data.setdefault("seen_endings", [])
     data.setdefault("flags", {})
     data.setdefault("tick_counter", 0)
+    data = _normalize_profile(data)
     save_profile(data, path)
     return data
 
