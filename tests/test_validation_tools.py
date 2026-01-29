@@ -84,3 +84,15 @@ def test_list_unreachable_includes_teleports_and_missing_targets() -> None:
     assert "next" in graph["start"]
     assert "missing" in graph["start"]
     assert any("missing node missing" in message for message in missing_targets)
+
+
+def test_load_world_rejects_invalid_faction_relationships(tmp_path: Path) -> None:
+    world = {
+        "title": "Test",
+        "nodes": {"start": {"choices": []}},
+        "starts": [{"node": "start"}],
+        "faction_relationships": {"Wind Choirs": {"Root Court": "rival"}},
+    }
+    path = write_world(tmp_path, world)
+    with pytest.raises(ValueError, match="faction_relationships"):
+        load_world(path)

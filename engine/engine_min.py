@@ -400,6 +400,16 @@ def load_world(path):
     world.setdefault("endings", {})
     world.setdefault("factions", [])
     world.setdefault("advanced_tags", [])
+    world.setdefault("faction_relationships", {})
+    world.setdefault("faction_relationship_multipliers", {})
+    world.setdefault("hostile_rep_threshold", -5)
+    world.setdefault("faction_hostile_thresholds", {})
+    world.setdefault(
+        "hostile_outcomes",
+        {"game_over": "hostile_game_over", "forced_retreat": "hostile_forced_retreat"},
+    )
+    world.setdefault("default_hostile_outcome", "forced_retreat")
+    ensure_hostile_outcome_nodes(world)
     return world
 
 
@@ -486,6 +496,132 @@ def meets_condition(cond, state):
 # ---------- Effects (minimal set) ----------
 def clamp(n, lo, hi): return lo if n<lo else hi if n>hi else n
 
+
+def get_relationship_multipliers(world):
+    defaults = {"ally": 1, "enemy": -1}
+    custom = world.get("faction_relationship_multipliers", {})
+    if isinstance(custom, dict):
+        defaults.update({k: v for k, v in custom.items() if isinstance(v, int)})
+    return defaults
+
+
+def normalize_faction_list(value):
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [v for v in value if isinstance(v, str) and v.strip()]
+    return []
+
+
+def get_node_factions(node):
+    if not isinstance(node, dict):
+        return []
+    factions = normalize_faction_list(node.get("factions"))
+    faction = node.get("faction")
+    if isinstance(faction, str) and faction.strip():
+        factions.append(faction)
+    return list(dict.fromkeys(factions))
+
+
+def get_hostile_threshold(world, faction):
+    overrides = world.get("faction_hostile_thresholds", {})
+    if isinstance(overrides, dict) and faction in overrides and isinstance(overrides[faction], int):
+        return overrides[faction]
+    return world.get("hostile_rep_threshold", -5)
+
+
+def get_hostile_outcome_targets(world):
+    targets = world.get("hostile_outcomes", {})
+    if isinstance(targets, dict):
+        return targets
+    return {}
+
+
+def ensure_hostile_outcome_nodes(world):
+    nodes = world.get("nodes", {})
+    endings = world.get("endings", {})
+    targets = get_hostile_outcome_targets(world)
+    defaults = {
+        "hostile_game_over": {
+            "title": "Hostile Encounter",
+            "text": "Your reputation turns the welcome into a wall of drawn steel. "
+            "The path ends here under a chorus of denied passage.",
+            "choices": [],
+            "ignore_hostile": True,
+        },
+        "hostile_forced_retreat": {
+            "title": "Forced Retreat",
+            "text": "Cold stares and raised voices force you back from the threshold. "
+            "You retreat to regroup, the route closed for now.",
+            "choices": [],
+            "ignore_hostile": True,
+        },
+    }
+    for key, node_id in targets.items():
+        if not isinstance(node_id, str) or not node_id:
+            continue
+        if node_id not in nodes and node_id in defaults:
+            nodes[node_id] = defaults[node_id]
+        if key == "game_over":
+            endings.setdefault(node_id, "Hostile Encounter")
+        elif key == "forced_retreat":
+            endings.setdefault(node_id, "Forced Retreat")
+    world["nodes"] = nodes
+    world["endings"] = endings
+
+
+def resolve_hostile_node(state, node_id, node):
+    if not isinstance(node, dict):
+        return None
+    if node.get("ignore_hostile"):
+        return None
+    outcome_targets = get_hostile_outcome_targets(state.world)
+    if node_id in outcome_targets.values():
+        return None
+    factions = get_node_factions(node)
+    if not factions:
+        return None
+    hostile = []
+    for faction in factions:
+        threshold = get_hostile_threshold(state.world, faction)
+        if state.player["rep"].get(faction, 0) <= threshold:
+            hostile.append(faction)
+    if not hostile:
+        return None
+    outcome = node.get("hostile_outcome") or state.world.get("default_hostile_outcome")
+    if outcome not in {"game_over", "forced_retreat"}:
+        outcome = "forced_retreat"
+    target = outcome_targets.get(outcome)
+    if target:
+        emit_effect_message(
+            state,
+            f"[!] Hostile presence from {', '.join(hostile)} forces a {outcome.replace('_', ' ')}.",
+            audio_cue="Hostile encounter.",
+        )
+    return target
+
+
+def apply_rep_delta_with_ripple(state, faction, delta):
+    updates = {faction: delta}
+    relationships = state.world.get("faction_relationships", {})
+    if isinstance(relationships, dict):
+        for other, relation in relationships.get(faction, {}).items():
+            if not isinstance(other, str) or not isinstance(relation, str):
+                continue
+            multiplier = get_relationship_multipliers(state.world).get(relation)
+            if multiplier is None:
+                continue
+            updates[other] = updates.get(other, 0) + delta * multiplier
+    for fac, dv in updates.items():
+        if dv == 0:
+            continue
+        state.player["rep"][fac] = clamp(state.player["rep"].get(fac, 0) + dv, -2, 2)
+        emit_effect_message(
+            state,
+            f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {state.player['rep'][fac]}",
+            audio_cue="Reputation changed.",
+        )
+
 def apply_effect(effect, state):
     if not effect: return
     t = effect.get("type")
@@ -520,13 +656,9 @@ def apply_effect(effect, state):
             p["traits"].append(tr)
             emit_effect_message(state, f"[✦] New Trait gained: {tr}", audio_cue="Trait gained.")
     elif t == "rep_delta":
-        fac = effect["faction"]; dv = int(effect.get("value",0))
-        p["rep"][fac] = clamp(p["rep"].get(fac,0)+dv, -2, 2)
-        emit_effect_message(
-            state,
-            f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {p['rep'][fac]}",
-            audio_cue="Reputation changed.",
-        )
+        fac = effect["faction"]
+        dv = int(effect.get("value", 0))
+        apply_rep_delta_with_ripple(state, fac, dv)
     elif t == "hp_delta":
         dv = int(effect.get("value",0))
         p["hp"] += dv
@@ -951,6 +1083,11 @@ def main():
             node = world["nodes"].get(node_id)
             if not node:
                 print(f"[!] Missing node '{node_id}'. Exiting."); return
+
+            hostile_target = resolve_hostile_node(state, node_id, node)
+            if hostile_target:
+                state.current_node = hostile_target
+                continue
 
             apply_effects(node.get("on_enter"), state)
             if "__ending__" in state.player["flags"]:
