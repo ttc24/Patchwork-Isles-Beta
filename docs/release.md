@@ -31,3 +31,12 @@ python tools/build_release.py --name Patchwork-Isles-Beta
 
 > If Python is not installed, download it from https://www.python.org/downloads/ and
 > re-run the launcher.
+
+## Beta drop cadence
+
+We ship **beta drops biweekly** (every two weeks). Each drop includes:
+- a tagged build in `dist/`,
+- a short changelog summary,
+- a playtest packet link for structured feedback.
+
+If a drop needs to slip, we still post a short update so playtesters know when to expect the next build.
