@@ -789,35 +789,42 @@ def ensure_hostile_outcome_nodes(world):
     world["endings"] = endings
 
 
-async def resolve_hostile_node(state, node_id, node):
-    if not isinstance(node, dict):
-        return None
-    if node.get("ignore_hostile"):
-        return None
-    outcome_targets = get_hostile_outcome_targets(state.world)
-    if node_id in outcome_targets.values():
-        return None
-    factions = get_node_factions(node)
-    if not factions:
-        return None
-    hostile = []
-    for faction in factions:
-        threshold = get_hostile_threshold(state.world, faction)
-        if state.player["rep"].get(faction, 0) <= threshold:
-            hostile.append(faction)
-    if not hostile:
-        return None
-    outcome = node.get("hostile_outcome") or state.world.get("default_hostile_outcome")
-    if outcome not in {"game_over", "forced_retreat"}:
-        outcome = "forced_retreat"
-    target = outcome_targets.get(outcome)
-    if target:
-        await emit_effect_message(
-            state,
-            f"[!] Hostile presence from {', '.join(hostile)} forces a {outcome.replace('_', ' ')}.",
-            audio_cue="Hostile encounter.",
-        )
-    return target
+def resolve_hostile_node(state, node_id, node):
+    async def _resolve():
+        if not isinstance(node, dict):
+            return None
+        if node.get("ignore_hostile"):
+            return None
+        outcome_targets = get_hostile_outcome_targets(state.world)
+        if node_id in outcome_targets.values():
+            return None
+        factions = get_node_factions(node)
+        if not factions:
+            return None
+        hostile = []
+        for faction in factions:
+            threshold = get_hostile_threshold(state.world, faction)
+            if state.player["rep"].get(faction, 0) <= threshold:
+                hostile.append(faction)
+        if not hostile:
+            return None
+        outcome = node.get("hostile_outcome") or state.world.get("default_hostile_outcome")
+        if outcome not in {"game_over", "forced_retreat"}:
+            outcome = "forced_retreat"
+        target = outcome_targets.get(outcome)
+        if target:
+            await emit_effect_message(
+                state,
+                f"[!] Hostile presence from {', '.join(hostile)} forces a {outcome.replace('_', ' ')}.",
+                audio_cue="Hostile encounter.",
+            )
+        return target
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(_resolve())
+    return _resolve()
 
 
 async def apply_rep_delta_with_ripple(state, faction, delta):
@@ -968,9 +975,16 @@ async def apply_effect(effect, state):
                 audio_cue="Legacy tag granted.",
             )
 
-async def apply_effects(effects, state):
-    for eff in effects or []:
-        await apply_effect(eff, state)
+def apply_effects(effects, state):
+    async def _apply():
+        for eff in effects or []:
+            await apply_effect(eff, state)
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(_apply())
+    return _apply()
 
 # ---------- Loop ----------
 def list_choices(node, state):

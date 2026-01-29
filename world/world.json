@@ -753,7 +753,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Mooring Mediator"
+                            "value": "ending_mooring_mediator"
                         }
                     ],
                     "target": "ending_mooring_mediator"
@@ -763,7 +763,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Rainchain Hostel Steward"
+                            "value": "ending_rainchain_hostel"
                         }
                     ],
                     "target": "ending_rainchain_hostel"
@@ -1015,7 +1015,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Market Steward Rotation"
+                            "value": "ending_market_steward"
                         }
                     ],
                     "target": "ending_market_steward"
@@ -1035,7 +1035,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Night Auditor of Roots"
+                            "value": "ending_root_night_auditor"
                         }
                     ],
                     "target": "ending_root_night_auditor"
@@ -1276,7 +1276,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Galleria Civic Cooperative"
+                            "value": "ending_galleria_steward"
                         }
                     ],
                     "target": "ending_galleria_steward"
@@ -1298,7 +1298,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Galleria Civic Cooperative"
+                            "value": "ending_galleria_steward"
                         }
                     ],
                     "target": "ending_galleria_steward"
@@ -1313,7 +1313,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Prism Liftkeeper"
+                            "value": "ending_prism_liftkeeper"
                         }
                     ],
                     "target": "ending_prism_liftkeeper"
@@ -1340,7 +1340,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Prism Light Commons"
+                            "value": "ending_prism_light_commons"
                         }
                     ],
                     "target": "ending_prism_light_commons"
@@ -1365,7 +1365,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Guest-Law Compact"
+                            "value": "ending_guestlaw"
                         }
                     ],
                     "target": "ending_guestlaw"
@@ -1388,7 +1388,7 @@
                         },
                         {
                             "type": "end_game",
-                            "value": "Prismatic Proof"
+                            "value": "ending_guestlaw"
                         }
                     ],
                     "target": "ending_guestlaw"
@@ -1428,7 +1428,7 @@
                         },
                         {
                             "type": "end_game",
-                            "value": "Clause Exposed Compact"
+                            "value": "ending_guestlaw"
                         }
                     ],
                     "target": "ending_guestlaw"
@@ -1487,7 +1487,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Canal Flight"
+                            "value": "ending_escape"
                         }
                     ],
                     "target": "ending_escape"
@@ -1525,7 +1525,7 @@
                         },
                         {
                             "type": "end_game",
-                            "value": "Chartered Escape"
+                            "value": "ending_escape"
                         }
                     ],
                     "target": "ending_escape"
@@ -1585,7 +1585,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Freehands Mist Regatta"
+                            "value": "ending_freehands_regatta"
                         }
                     ],
                     "target": "ending_freehands_regatta"
@@ -1612,7 +1612,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Common Tide Charter"
+                            "value": "ending_canal_common_tide"
                         }
                     ],
                     "target": "ending_canal_common_tide"
@@ -2103,7 +2103,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Tend the Correction"
+                            "value": "ending_correction"
                         }
                     ],
                     "target": "ending_correction"
@@ -2820,7 +2820,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Migrant Kithhouse Accord"
+                            "value": "ending_migrant_kithhouse"
                         }
                     ],
                     "target": "ending_migrant_kithhouse"
@@ -2888,7 +2888,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Shared Ledger Loop"
+                            "value": "ending_shared_ledger_loop"
                         }
                     ],
                     "target": "ending_shared_ledger_loop"
@@ -2908,7 +2908,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Keeper of Passways"
+                            "value": "ending_keeper_of_passways"
                         }
                     ],
                     "target": "ending_keeper_of_passways"
@@ -3140,7 +3140,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Moon-Eel Guest Curator"
+                            "value": "ending_moon_eel_guest"
                         }
                     ],
                     "target": "ending_moon_eel_guest"
@@ -3401,7 +3401,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Saltglass Wayfinder"
+                            "value": "ending_saltglass_wayfinder"
                         }
                     ],
                     "target": "ending_saltglass_wayfinder"
@@ -3790,7 +3790,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Freehands Dispatch Coordinator"
+                            "value": "ending_freehands_dispatch"
                         }
                     ],
                     "target": "ending_freehands_dispatch"
@@ -4317,7 +4317,7 @@
                         },
                         {
                             "type": "end_game",
-                            "value": "Treaty of Moving Shade"
+                            "value": "ending_shade_treaty"
                         }
                     ],
                     "target": "ending_shade_treaty"
@@ -4608,7 +4608,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Balcony Safety Concord"
+                            "value": "ending_balcony_safe_concord"
                         }
                     ],
                     "target": "ending_balcony_safe_concord"
@@ -4630,7 +4630,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Cloud-Burrow Balcony Cooperative"
+                            "value": "ending_cloud_cooperative"
                         }
                     ],
                     "target": "ending_cloud_cooperative"
@@ -5883,7 +5883,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Saltglass Waystation Warden"
+                            "value": "ending_saltglass_waystation"
                         }
                     ],
                     "target": "ending_saltglass_waystation"
@@ -5966,7 +5966,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "The Unshattered Gale"
+                            "value": "ending_unshattered_gale"
                         }
                     ],
                     "target": "ending_unshattered_gale"
@@ -7272,7 +7272,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "The Living Wake"
+                            "value": "ending_living_wake"
                         }
                     ],
                     "target": "ending_living_wake"
@@ -7287,7 +7287,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Wake Candle Warden"
+                            "value": "ending_wake_candle_warden"
                         }
                     ],
                     "target": "ending_wake_candle_warden"
@@ -7472,7 +7472,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Shed Market Rotation Keeper"
+                            "value": "ending_shed_market_retirement"
                         }
                     ],
                     "target": "ending_shed_market_retirement"
@@ -8223,7 +8223,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Maskbinder in Residence"
+                            "value": "ending_bazaar_maskbinder"
                         }
                     ],
                     "target": "ending_bazaar_maskbinder"
@@ -8686,7 +8686,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Cocoon Hostel Caretaker"
+                            "value": "ending_cocoon_host_caretaker"
                         }
                     ],
                     "target": "ending_cocoon_host_caretaker"
@@ -8973,7 +8973,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "Amnesty of Names"
+                            "value": "ending_amnesty_of_names"
                         }
                     ],
                     "target": "ending_amnesty_of_names"
@@ -10174,7 +10174,7 @@
                     "effects": [
                         {
                             "type": "end_game",
-                            "value": "The Orchard Accord"
+                            "value": "ending_orchard_accord"
                         }
                     ],
                     "target": "ending_orchard_accord"
