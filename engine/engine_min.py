@@ -193,6 +193,30 @@ def emit_effect_message(state: "GameState", message: str, *, audio_cue: str | No
         emit_line(print_formatted(f"[Audio Cue] {audio_cue}"), state, allow_delay=True)
 
 
+def read_world_art(state: "GameState", filename: str | None) -> str | None:
+    if not isinstance(filename, str) or not filename.strip():
+        return None
+    try:
+        world_path = Path(getattr(state, "world_path", DEFAULT_WORLD_PATH)).resolve()
+    except (OSError, RuntimeError):
+        world_path = Path(DEFAULT_WORLD_PATH).resolve()
+    art_dir = world_path.parent / "art"
+    requested_path = Path(filename)
+    if requested_path.is_absolute() or ".." in requested_path.parts:
+        return None
+    art_path = (art_dir / requested_path).resolve()
+    try:
+        art_dir_resolved = art_dir.resolve()
+    except FileNotFoundError:
+        art_dir_resolved = art_dir
+    if art_path != art_dir_resolved and art_dir_resolved not in art_path.parents:
+        return None
+    try:
+        return art_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
 def format_heading(text: str, settings: Settings) -> str:
     return text.upper() if getattr(settings, "high_contrast", False) else text
 
@@ -1067,6 +1091,12 @@ def render_node(node, state):
     print(format_heading(node.get("title", state.world["title"]), settings))
     print(separator(width, settings, primary=False))
 
+    art_text = read_world_art(state, node.get("art"))
+    if art_text:
+        for line in art_text.splitlines():
+            emit_line(line, state, allow_delay=True)
+        print("")
+
     body = node.get("text", "")
     if body:
         for paragraph in body.split("\n"):
@@ -1361,6 +1391,7 @@ def main():
         active_area=active_area,
     )
     state.debug = debug_mode
+    state.world_path = world_path
 
     def open_options_menu():
         updated, changed = options_menu(
@@ -1381,6 +1412,7 @@ def main():
             world_seed=world_seed,
             active_area=active_area,
         )
+        state.world_path = world_path
         state.debug = debug_mode
         print(f"\n=== {world['title']} ===")
         print(f"[Profile] {selection.name}")

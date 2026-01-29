@@ -10,6 +10,7 @@ All prompts ask Codex to emit JSON that matches the engine schema:
 <!-- schema-docs:start -->
 - Allowed condition types: `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `missing_tag`, `rep_at_least`, `rep_at_least_count`, `has_var_gte`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`.
 - Allowed effect types: `set_flag`, `add_tag`, `remove_tag`, `add_trait`, `rep_delta`, `hp_delta`, `var_delta`, `set_var`, `teleport`, `end_game`, `unlock_start`.
+- Optional node field: `art` (string filename under `world/art/` to render before the node text).
 - Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes.
 <!-- schema-docs:end -->
 
