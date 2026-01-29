@@ -432,11 +432,77 @@ def _raise_world_validation(errors):
     raise ValueError("Invalid world.json:\n- " + "\n- ".join(errors))
 
 
+def _merge_world_modules(world, world_path):
+    modules = world.get("modules")
+    if not modules:
+        return world
+    if not isinstance(modules, list):
+        _raise_world_validation(["'modules' must be a list of module file paths."])
+
+    base_nodes, node_errors = normalize_nodes(world.get("nodes"))
+    if node_errors:
+        _raise_world_validation(node_errors)
+    base_endings = world.get("endings") or {}
+    if not isinstance(base_endings, dict):
+        _raise_world_validation(["'endings' must be an object mapping ending IDs to text."])
+    base_starts = world.get("starts") or []
+    if not isinstance(base_starts, list):
+        _raise_world_validation(["'starts' must be a list of start entries."])
+
+    combined_nodes = dict(base_nodes)
+    combined_endings = dict(base_endings)
+    combined_starts = list(base_starts)
+    base_dir = Path(world_path).resolve().parent
+
+    for module_ref in modules:
+        if not isinstance(module_ref, str) or not module_ref.strip():
+            _raise_world_validation(["module entries must be non-empty strings."])
+        module_path = (base_dir / module_ref).resolve()
+        with open(module_path, "r", encoding="utf-8") as handle:
+            module = json.load(handle)
+        if not isinstance(module, dict):
+            _raise_world_validation([f"{module_path}: module data must be a JSON object."])
+
+        module_nodes, module_node_errors = normalize_nodes(module.get("nodes"))
+        if module_node_errors:
+            _raise_world_validation([f"{module_path}: {err}" for err in module_node_errors])
+        overlap = set(combined_nodes).intersection(module_nodes)
+        if overlap:
+            _raise_world_validation(
+                [f"{module_path}: node IDs already exist in base world: {', '.join(sorted(overlap))}."]
+            )
+        combined_nodes.update(module_nodes)
+
+        module_endings = module.get("endings") or {}
+        if not isinstance(module_endings, dict):
+            _raise_world_validation([f"{module_path}: 'endings' must be an object."])
+        for ending_id, ending_text in module_endings.items():
+            if ending_id in combined_endings and combined_endings[ending_id] != ending_text:
+                _raise_world_validation(
+                    [
+                        f"{module_path}: ending '{ending_id}' conflicts with existing definition.",
+                    ]
+                )
+            combined_endings.setdefault(ending_id, ending_text)
+
+        module_starts = module.get("starts") or []
+        if not isinstance(module_starts, list):
+            _raise_world_validation([f"{module_path}: 'starts' must be a list."])
+        combined_starts.extend(module_starts)
+
+    world["nodes"] = combined_nodes
+    world["endings"] = combined_endings
+    world["starts"] = combined_starts
+    return world
+
+
 def load_world(path):
     with open(path, "r", encoding="utf-8") as f:
         world = json.load(f)
     if not isinstance(world, dict):
         _raise_world_validation(["World data must be a JSON object."])
+
+    world = _merge_world_modules(world, path)
 
     errors = validate_world(world)
     if errors:

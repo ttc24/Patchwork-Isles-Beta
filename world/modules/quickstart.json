@@ -1,0 +1,144 @@
+{
+    "title": "Quickstart Onboarding",
+    "nodes": {
+        "quickstart_arrival": {
+            "title": "Quickstart: Arrival Platform",
+            "text": "A quiet platform hangs over the inner sea, marked with painted arrows and a warm lantern. A guide waves you in, ready to walk you through the essentials before you step into the wider archipelago.",
+            "choices": [
+                {
+                    "text": "Follow the guide toward a short walkthrough.",
+                    "target": "quickstart_controls"
+                },
+                {
+                    "text": "Pick up the starter kit laid out on the bench.",
+                    "target": "quickstart_kit"
+                },
+                {
+                    "text": "Exit onboarding and head straight to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                }
+            ]
+        },
+        "quickstart_controls": {
+            "title": "Quickstart: Controls",
+            "text": "The guide points to a slate: press the number beside a choice to move forward. Open the inventory with I, options with O, and quit with Q whenever you need a break.",
+            "choices": [
+                {
+                    "text": "Return to the platform.",
+                    "target": "quickstart_arrival"
+                },
+                {
+                    "text": "Continue to the starter kit station.",
+                    "target": "quickstart_kit"
+                },
+                {
+                    "text": "Exit onboarding and head straight to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                }
+            ]
+        },
+        "quickstart_kit": {
+            "title": "Quickstart: Starter Kit",
+            "text": "A set of travel tokens and a simple badge sit in a tidy tray. The badge marks you as a {tag:Scout} for the rest of the onboarding arc.",
+            "choices": [
+                {
+                    "text": "Take the Scout badge and travel tokens.",
+                    "effects": [
+                        {
+                            "type": "add_tag",
+                            "value": "Scout"
+                        },
+                        {
+                            "type": "add_item",
+                            "value": "Travel Token"
+                        }
+                    ],
+                    "target": "quickstart_routes"
+                },
+                {
+                    "text": "Leave the kit for someone else and move on.",
+                    "target": "quickstart_routes"
+                },
+                {
+                    "text": "Exit onboarding and head straight to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                }
+            ]
+        },
+        "quickstart_routes": {
+            "title": "Quickstart: Two Routes",
+            "text": "Two walkways leave the platform. The upper rail is narrow but fast, while the lower ramp is wide and open to everyone.",
+            "choices": [
+                {
+                    "text": "(Scout) Take the upper rail shortcut.",
+                    "condition": {
+                        "type": "has_tag",
+                        "value": "Scout"
+                    },
+                    "effects": [
+                        {
+                            "type": "set_flag",
+                            "flag": "quickstart_used_shortcut",
+                            "value": true
+                        }
+                    ],
+                    "target": "quickstart_signal"
+                },
+                {
+                    "text": "Use the lower ramp and keep a steady pace.",
+                    "target": "quickstart_signal"
+                },
+                {
+                    "text": "Exit onboarding and head straight to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                }
+            ]
+        },
+        "quickstart_signal": {
+            "title": "Quickstart: Signal Post",
+            "text": "At the end of the route a small signal post hums, waiting for a decision. It records simple flags you can check later with the tags/flags overlay.",
+            "choices": [
+                {
+                    "text": "Raise the signal to mark your readiness.",
+                    "effects": [
+                        {
+                            "type": "set_flag",
+                            "flag": "quickstart_signal_raised",
+                            "value": true
+                        }
+                    ],
+                    "target": "quickstart_departure"
+                },
+                {
+                    "text": "Leave the post untouched and move on.",
+                    "target": "quickstart_departure"
+                },
+                {
+                    "text": "Exit onboarding and head straight to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                }
+            ]
+        },
+        "quickstart_departure": {
+            "title": "Quickstart: Departure Gate",
+            "text": "A final arch opens toward the wider Startways. You have practiced movement, tags, items, and flags—just enough to step into the full world.",
+            "choices": [
+                {
+                    "text": "Continue to the tutorial island.",
+                    "target": "tutorial_arrival_beach"
+                },
+                {
+                    "text": "End the quickstart session here.",
+                    "target": "ending_quickstart_exit"
+                }
+            ]
+        },
+        "ending_quickstart_exit": {
+            "title": "Quickstart Complete",
+            "text": "You sign off at the edge of the Startways, confident in the basics. The archipelago waits for your return."
+        }
+    },
+    "endings": {
+        "ending_quickstart_exit": "Complete the quickstart onboarding and pause before the wider journey."
+    }
+}

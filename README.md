@@ -24,7 +24,7 @@
    python -m pip install -r requirements-dev.txt
    ```
    > If you only want to play, you can skip installing dev tools.
-5. **Run the engine.**
+5. **Run the engine (pick the new Quickstart Onboarding origin for the guided intro).**
    ```bash
    python engine/engine_min.py world/world.json
    ```
@@ -60,7 +60,7 @@ Share the resulting `dist/Patchwork-Isles-YYYYMMDD.zip`. For step-by-step usage,
 - The Doom clock triggers after `tick_counter > 500`; some late-game routes reroute or close once the threshold is exceeded.
 
 ## Roadmap (toward v0.9 Beta)
-- [ ] Standalone quickstart world tailored for first-time players.
+- [x] Quickstart onboarding module (`world/modules/quickstart.json`) tailored for first-time players.
 - [ ] Faction reputation UI polish and readable summaries.
 - [ ] World authoring guidelines synced with in-game terminology.
 - [ ] Automated content linting with CI (validate, ruff, mypy).

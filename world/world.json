@@ -17,7 +17,16 @@
         "Dreamwalker",
         "Storm-Conductor"
     ],
+    "modules": [
+        "modules/quickstart.json"
+    ],
     "starts": [
+        {
+            "id": "quickstart_onboarding",
+            "title": "Quickstart Onboarding",
+            "node": "quickstart_arrival",
+            "blurb": "Begin with a short onboarding arc that explains movement, tags, items, and flags before you enter the main tutorial island."
+        },
         {
             "id": "tutorial_first_five",
             "title": "First Five Minutes (Tutorial Island)",
