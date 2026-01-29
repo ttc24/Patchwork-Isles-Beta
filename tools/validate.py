@@ -45,7 +45,7 @@ def main(argv: Sequence[str]) -> None:
 
     errors = validate_world(world)
     if errors:
-        print("Validation failed:")
+        print("Validation failed (path: message):")
         for err in errors:
             print(f" - {err}")
         sys.exit(1)
