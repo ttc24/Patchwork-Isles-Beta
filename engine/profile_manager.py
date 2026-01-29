@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Awaitable, Callable, List
 
+from .platform import IS_WEB, get_local_storage
+
 
 class ProfileError(Exception):
     """Raised when a profile cannot be created or loaded."""
@@ -22,6 +24,7 @@ PROFILE_FILENAME = "profile.json"
 DEFAULT_PROFILE_ROOT = Path("profiles")
 DEFAULT_SAVE_ROOT = Path("saves")
 _VALID_PROFILE_CHARS = set(string.ascii_lowercase + string.digits + "-_")
+_PROFILE_STORAGE_PREFIX = "patchwork.profile:"
 
 
 @dataclass(frozen=True)
@@ -60,8 +63,23 @@ def _normalize_profile(data: dict) -> dict:
     return data
 
 
+def _profile_storage_key(path: Path) -> str:
+    normalized = path.as_posix().lstrip("./")
+    return f"{_PROFILE_STORAGE_PREFIX}{normalized}"
+
+
 def save_profile(profile: dict, path: Path | str, *, keep_backup: bool = True) -> None:
     path = Path(path)
+    storage = get_local_storage()
+    if IS_WEB and storage is not None:
+        key = _profile_storage_key(path)
+        payload = json.dumps(profile, indent=2)
+        if keep_backup:
+            existing = storage.getItem(key)
+            if existing is not None:
+                storage.setItem(f"{key}.bak", existing)
+        storage.setItem(key, payload)
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path: Path | None = None
     try:
@@ -86,6 +104,35 @@ def save_profile(profile: dict, path: Path | str, *, keep_backup: bool = True) -
 
 def load_profile(path: Path | str) -> dict:
     path = Path(path)
+    storage = get_local_storage()
+    if IS_WEB and storage is not None:
+        key = _profile_storage_key(path)
+        raw = storage.getItem(key)
+        if raw is None:
+            profile = default_profile()
+            save_profile(profile, path)
+            return profile
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            print(f"[Profile] Failed to parse web profile: {exc}", file=sys.stderr)
+            backup_raw = storage.getItem(f"{key}.bak")
+            if backup_raw is not None:
+                try:
+                    data = json.loads(backup_raw)
+                    print("[Profile] Restoring profile from web backup.", file=sys.stderr)
+                except json.JSONDecodeError:
+                    data = default_profile()
+            else:
+                data = default_profile()
+        data.setdefault("unlocked_starts", [])
+        data.setdefault("legacy_tags", [])
+        data.setdefault("seen_endings", [])
+        data.setdefault("flags", {})
+        data.setdefault("tick_counter", 0)
+        data = _normalize_profile(data)
+        save_profile(data, path)
+        return data
     if not path.exists():
         profile = default_profile()
         save_profile(profile, path)
