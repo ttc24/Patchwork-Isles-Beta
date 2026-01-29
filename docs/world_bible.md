@@ -51,7 +51,14 @@ Traits are earned diegetically through choices (no menus). When granting a trait
 Additional items can appear later, but keep early inventory lean and purposeful.
 
 ## Factions & Reputation
-Faction reputation ranges from −2 to +2 and is always earned diegetically.
+Faction reputation ranges from −10 to +10 and is always earned diegetically. The UI displays faction reputation as a tier label plus the signed value (e.g., `Wind Choirs: Trusted (+7)`).
+- **−10 to −8** — Nemesis
+- **−7 to −5** — Hated
+- **−4 to −2** — Wary
+- **−1 to +1** — Neutral
+- **+2 to +4** — Favored
+- **+5 to +7** — Trusted
+- **+8 to +10** — Exalted
 - **Wind Choirs** — Skyward navigators that enforce guest-law aboard stormglass docks.
 - **Root Court** — Arboreal magistrates who interpret contracts and living covenants.
 - **Prism Guild** — Lenswrights and light engineers balancing innovation with control.
@@ -63,6 +70,7 @@ Use reputation gates sparingly; when you do, ensure a tagless alternative remain
 Author faction politics in the world header so reputation shifts ripple across allies and enemies.
 - `faction_relationships`: map a faction to its allies/enemies, e.g. `{ "Wind Choirs": { "Root Court": "enemy", "Skyward": "ally" } }`.
 - `faction_relationship_multipliers`: optional override for `"ally"`/`"enemy"` multipliers (defaults to `+1` and `-1`).
+- `rep_bounds`: optional `{ "min": -10, "max": 10 }` override for reputation clamping (or use `rep_min`/`rep_max`).
 - `hostile_rep_threshold`: global threshold (default `-5`) used to mark a node as hostile when entering.
 - `faction_hostile_thresholds`: optional per-faction overrides for the hostile threshold.
 - `hostile_outcomes`: node ids for `"game_over"` and `"forced_retreat"` outcomes (defaults to `hostile_game_over` and `hostile_forced_retreat`).
