@@ -4,10 +4,32 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+import json
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping, Sequence, Tuple
 
 ConditionValidator = Callable[[Mapping[str, Any], str], List[str]]
 EffectValidator = Callable[[Mapping[str, Any], str, Mapping[str, Any], Mapping[str, Any]], List[str]]
+
+
+def path(*parts: object) -> str:
+    path_str = ""
+    for part in parts:
+        if isinstance(part, int):
+            path_str = f"{path_str}[{part}]"
+            continue
+        if not isinstance(part, str):
+            part = str(part)
+        if part.isidentifier():
+            path_str = f"{path_str}.{part}" if path_str else part
+        else:
+            path_str = f'{path_str}[{json.dumps(part)}]'
+    return path_str
+
+
+def format_validation_message(path_str: str, context: str, message: str) -> str:
+    if context:
+        return f"{path_str}: {context}: {message}"
+    return f"{path_str}: {message}"
 
 
 def is_non_empty_str(value: Any) -> bool:
@@ -26,41 +48,65 @@ def simple_value(value: Any) -> bool:
     return value is None or isinstance(value, (str, int, bool))
 
 
-def normalize_nodes(raw_nodes: Any) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+def normalize_nodes(
+    raw_nodes: Any, ctx: Any | None = None
+) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
     nodes: Dict[str, Dict[str, Any]] = {}
     errors: List[str] = []
     node_ids: List[str] = []
 
+    def add_error(context: str, path_parts: Sequence[object], message: str) -> None:
+        path_str = path(*path_parts)
+        errors.append(format_validation_message(path_str, context, message))
+        if ctx is not None:
+            ctx.add(context, path_str, message)
+
     if isinstance(raw_nodes, dict):
         for node_id, payload in raw_nodes.items():
             if not is_non_empty_str(node_id):
-                errors.append("Node identifiers must be non-empty strings.")
+                add_error("Nodes", ("nodes",), "node identifiers must be non-empty strings.")
                 continue
             if not isinstance(payload, dict):
-                errors.append(f"Node '{node_id}' must be an object.")
+                add_error(
+                    "Nodes",
+                    ("nodes", node_id),
+                    f"node '{node_id}' must be an object.",
+                )
                 continue
             nodes[node_id] = payload
         node_ids = list(nodes.keys())
     elif isinstance(raw_nodes, list):
         for idx, entry in enumerate(raw_nodes, start=1):
             if not isinstance(entry, MutableMapping):
-                errors.append(f"Node entry {idx} must be an object.")
+                add_error(
+                    f"Node entry {idx}",
+                    ("nodes", idx - 1),
+                    "must be an object.",
+                )
                 continue
             node_id = entry.get("id")
             if not is_non_empty_str(node_id):
-                errors.append(f"Node entry {idx} is missing a valid 'id'.")
+                add_error(
+                    f"Node entry {idx}",
+                    ("nodes", idx - 1, "id"),
+                    "is missing a valid 'id'.",
+                )
                 continue
             node_ids.append(node_id)
             payload = dict(entry)
             payload.pop("id", None)
             nodes[node_id] = payload
     else:
-        errors.append("'nodes' must be an object mapping IDs to node definitions or a list of node entries.")
+        add_error(
+            "World data",
+            ("nodes",),
+            "must be an object mapping IDs to node definitions or a list of node entries.",
+        )
 
     duplicates = [node_id for node_id, count in Counter(node_ids).items() if count > 1]
     if duplicates:
         dup_list = ", ".join(sorted(set(duplicates)))
-        errors.append(f"Duplicate node IDs found: {dup_list}.")
+        add_error("Nodes", ("nodes",), f"duplicate node IDs found: {dup_list}.")
 
     return nodes, errors
 
