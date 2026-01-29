@@ -11,9 +11,10 @@ import string
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional
+from typing import Awaitable, Callable, Dict, Iterable, List, Optional
 
 from .save_migrations import SaveMigrationError, migrate_save_payload
+from .platform import IS_WEB, get_local_storage
 
 
 class SaveError(Exception):
@@ -42,6 +43,7 @@ class SaveManager:
     AUTOSAVE_SLOT = "autosave"
     QUICK_SLOT = "quick"
     _VALID_SLOT_CHARS = set(string.ascii_lowercase + string.digits + "-_")
+    _WEB_STORAGE_PREFIX = "patchwork.save:"
 
     def __init__(
         self,
@@ -53,19 +55,33 @@ class SaveManager:
     ) -> None:
         self.state = state
         self.base_path = Path(base_path)
-        self.base_path.mkdir(parents=True, exist_ok=True)
         self.input_func = input_func
         self.print = print_func
+        self._local_storage = get_local_storage()
+        self._use_web_storage = IS_WEB and self._local_storage is not None
+        if IS_WEB and self._local_storage is None:
+            self.print(
+                "[Save] localStorage unavailable in web build; "
+                "falling back to filesystem storage."
+            )
+        if not self._use_web_storage:
+            self.base_path.mkdir(parents=True, exist_ok=True)
 
     # ---------- Public API ----------
     def save(self, slot: str, *, label: Optional[str] = None, quiet: bool = False) -> Path:
         normalized = self._normalize_slot(slot)
+        payload = self._build_payload(normalized)
+        if self._use_web_storage:
+            save_key = self._web_key(normalized, self.SAVE_FILENAME)
+            self._write_payload_web(normalized, payload, make_backup=True)
+            if not quiet:
+                tag = label or "Saved"
+                self.print(f"[{tag}] Slot '{normalized}' stored in localStorage.")
+            return Path(save_key)
         path = self._slot_path(normalized)
         path.mkdir(parents=True, exist_ok=True)
         save_path = path / self.SAVE_FILENAME
         backup_path = path / self.BACKUP_FILENAME
-
-        payload = self._build_payload(normalized)
         self._write_payload(save_path, backup_path, payload, make_backup=True)
 
         if not quiet:
@@ -75,6 +91,78 @@ class SaveManager:
 
     async def load(self, slot: str, *, prefer_backup: bool = False) -> bool:
         normalized = self._normalize_slot(slot)
+        if self._use_web_storage:
+            save_key = self._web_key(normalized, self.SAVE_FILENAME)
+            backup_key = self._web_key(normalized, self.BACKUP_FILENAME)
+            legacy_key = self._legacy_save_key(normalized)
+            legacy_backup = f"{legacy_key}.bak" if legacy_key else None
+
+            target_key = backup_key if prefer_backup else save_key
+            if not self._web_exists(target_key):
+                if self._web_exists(save_key):
+                    target_key = save_key
+                elif legacy_key and self._web_exists(legacy_key):
+                    target_key = legacy_backup if prefer_backup and legacy_backup else legacy_key
+                else:
+                    self.print(f"[!] No save found for slot '{normalized}'.")
+                    return False
+
+            try:
+                payload = self._read_payload_web(target_key)
+            except SaveMigrationError as err:
+                if self._web_exists(backup_key) and target_key != backup_key:
+                    self.print(f"[!] Save slot '{normalized}' migration failed: {err}")
+                    if await self._confirm_restore(normalized):
+                        try:
+                            payload = self._read_payload_web(backup_key)
+                        except (SaveError, SaveMigrationError) as backup_err:
+                            self.print(
+                                f"[!] Backup for slot '{normalized}' also failed: {backup_err}"
+                            )
+                            return False
+                        self._write_payload_web(normalized, payload, make_backup=False)
+                        self.print(
+                            f"[Restore] Backup save applied for slot '{normalized}'."
+                        )
+                    else:
+                        self.print("[!] Load cancelled.")
+                        return False
+                else:
+                    self.print(
+                        f"[!] Failed to migrate slot '{normalized}': {err}. No backup available."
+                    )
+                    return False
+            except SaveCorruptError as err:
+                if self._web_exists(backup_key) and target_key != backup_key:
+                    self.print(f"[!] Save slot '{normalized}' is corrupted: {err}")
+                    if await self._confirm_restore(normalized):
+                        try:
+                            payload = self._read_payload_web(backup_key)
+                        except (SaveError, SaveMigrationError) as backup_err:
+                            self.print(
+                                f"[!] Backup for slot '{normalized}' also failed: {backup_err}"
+                            )
+                            return False
+                        self._write_payload_web(normalized, payload, make_backup=False)
+                        self.print(
+                            f"[Restore] Backup save applied for slot '{normalized}'."
+                        )
+                    else:
+                        self.print("[!] Load cancelled.")
+                        return False
+                else:
+                    self.print(
+                        f"[!] Failed to load slot '{normalized}': {err}. No backup available."
+                    )
+                    return False
+            except SaveError as err:
+                self.print(f"[!] Failed to load slot '{normalized}': {err}")
+                return False
+
+            self._apply_payload(payload)
+            self.print(f"[Loaded] Slot '{normalized}' from localStorage.")
+            return True
+
         path = self._slot_path(normalized)
         save_path = path / self.SAVE_FILENAME
         backup_path = path / self.BACKUP_FILENAME
@@ -158,6 +246,20 @@ class SaveManager:
 
     def list_slots(self, *, include_special: bool = False) -> List[SlotMetadata]:
         slots: List[SlotMetadata] = []
+        if self._use_web_storage:
+            for slot in sorted(self._list_web_slots()):
+                if not include_special and slot == self.AUTOSAVE_SLOT:
+                    continue
+                main_key = self._web_key(slot, self.SAVE_FILENAME)
+                target_key = main_key
+                if not self._web_exists(main_key):
+                    legacy_key = self._legacy_save_key(slot)
+                    if legacy_key is None or not self._web_exists(legacy_key):
+                        continue
+                    target_key = legacy_key
+                metadata = self._read_metadata_web(target_key, slot)
+                slots.append(metadata)
+            return slots
         if not self.base_path.exists():
             return slots
         for child in sorted(self.base_path.iterdir()):
@@ -198,6 +300,33 @@ class SaveManager:
             if candidate.exists():
                 return candidate
         return None
+
+    def _legacy_save_key(self, slot: str) -> Optional[str]:
+        for name in self.LEGACY_SAVE_FILENAMES:
+            return self._web_key(slot, name)
+        return None
+
+    def _web_key(self, slot: str, filename: str) -> str:
+        base = self.base_path.as_posix().strip("/")
+        return f"{self._WEB_STORAGE_PREFIX}{base}/{slot}/{filename}"
+
+    def _web_exists(self, key: str) -> bool:
+        if self._local_storage is None:
+            return False
+        return self._local_storage.getItem(key) is not None
+
+    def _iter_web_keys(self) -> Iterable[str]:
+        if self._local_storage is None:
+            return []
+        try:
+            length = int(self._local_storage.length)
+        except Exception:
+            length = 0
+        return [
+            str(self._local_storage.key(index))
+            for index in range(length)
+            if self._local_storage.key(index) is not None
+        ]
 
     def _backup_path_for(self, save_path: Optional[Path]) -> Optional[Path]:
         if save_path is None:
@@ -253,12 +382,43 @@ class SaveManager:
             shutil.copy2(save_path, backup_path)
         tmp_path.replace(save_path)
 
+    def _write_payload_web(
+        self,
+        slot: str,
+        payload: Dict,
+        *,
+        make_backup: bool,
+    ) -> None:
+        if self._local_storage is None:
+            raise SaveError("localStorage is unavailable.")
+        save_key = self._web_key(slot, self.SAVE_FILENAME)
+        backup_key = self._web_key(slot, self.BACKUP_FILENAME)
+        if make_backup:
+            existing = self._local_storage.getItem(save_key)
+            if existing is not None:
+                self._local_storage.setItem(backup_key, existing)
+        self._local_storage.setItem(save_key, json.dumps(payload, indent=2))
+
     def _read_payload(self, path: Path) -> Dict:
         try:
             with open(path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
         except FileNotFoundError as exc:
             raise SaveError("Save file missing.") from exc
+        except json.JSONDecodeError as exc:
+            raise SaveCorruptError(f"Invalid JSON: {exc}") from exc
+        payload = migrate_save_payload(payload, self.SCHEMA_VERSION)
+        self._validate_payload(payload)
+        return payload
+
+    def _read_payload_web(self, key: str) -> Dict:
+        if self._local_storage is None:
+            raise SaveError("localStorage is unavailable.")
+        raw = self._local_storage.getItem(key)
+        if raw is None:
+            raise SaveError("Save file missing.")
+        try:
+            payload = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise SaveCorruptError(f"Invalid JSON: {exc}") from exc
         payload = migrate_save_payload(payload, self.SCHEMA_VERSION)
@@ -316,6 +476,34 @@ class SaveManager:
             player_name=metadata.get("player_name"),
             active_area=metadata.get("active_area"),
         )
+
+    def _read_metadata_web(self, key: str, slot: str) -> SlotMetadata:
+        try:
+            payload = self._read_payload_web(key)
+        except (SaveError, SaveMigrationError):
+            return SlotMetadata(slot=slot)
+        metadata = payload.get("metadata", {})
+        return SlotMetadata(
+            slot=slot,
+            saved_at=metadata.get("saved_at"),
+            player_name=metadata.get("player_name"),
+            active_area=metadata.get("active_area"),
+        )
+
+    def _list_web_slots(self) -> List[str]:
+        prefix = f"{self._WEB_STORAGE_PREFIX}{self.base_path.as_posix().strip('/')}/"
+        slots = set()
+        for key in self._iter_web_keys():
+            if not key.startswith(prefix):
+                continue
+            remainder = key[len(prefix) :]
+            parts = remainder.split("/", 1)
+            if len(parts) != 2:
+                continue
+            slot, filename = parts
+            if filename == self.SAVE_FILENAME or filename in self.LEGACY_SAVE_FILENAMES:
+                slots.add(slot)
+        return list(slots)
 
     def _compute_world_signature(self) -> Optional[str]:
         if not isinstance(self.state.world, dict):
