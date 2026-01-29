@@ -340,6 +340,7 @@ def _normalize_nodes(raw_nodes):
                 continue
             nodes[node_id] = payload
     elif isinstance(raw_nodes, list):
+        seen = set()
         for idx, entry in enumerate(raw_nodes, start=1):
             if not isinstance(entry, dict):
                 errors.append(f"Node entry {idx} must be an object.")
@@ -348,9 +349,13 @@ def _normalize_nodes(raw_nodes):
             if not isinstance(node_id, str) or not node_id.strip():
                 errors.append(f"Node entry {idx} is missing a valid 'id'.")
                 continue
+            if node_id in seen:
+                errors.append(f"Duplicate node id '{node_id}' at entry {idx}.")
+                continue
             payload = dict(entry)
             payload.pop("id", None)
             nodes[node_id] = payload
+            seen.add(node_id)
     else:
         errors.append(
             "'nodes' must be an object mapping IDs to node definitions or a list of node entries."
