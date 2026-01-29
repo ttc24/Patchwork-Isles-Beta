@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from engine.schema import validate_world
+from tools.softlock import analyze_softlocks
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -49,6 +50,13 @@ def main(argv: Sequence[str]) -> None:
         for err in errors:
             print(f" - {err}")
         sys.exit(1)
+
+    warnings = analyze_softlocks(world)
+    if warnings:
+        print("Soft-lock warnings (path: message):")
+        for warning in warnings:
+            print(f" - {warning}")
+
     print(f"Validation passed for {world_path}.")
 
 
