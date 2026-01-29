@@ -8,6 +8,7 @@ Tag/Trait CYOA Engine — Minimal
 Usage: python3 engine_min.py [world.json]
 """
 
+import argparse
 import hashlib
 import json
 import re
@@ -964,6 +965,11 @@ def render_node(node, state):
         if getattr(settings, "high_contrast", False):
             commands_line = "  COMMANDS: " + " | ".join(commands)
         print(commands_line)
+        if getattr(state, "debug", False):
+            debug_line = "  DEBUG: /goto, /give, /set"
+            if getattr(settings, "high_contrast", False):
+                debug_line = "  DEBUG COMMANDS: /goto, /give, /set"
+            print(debug_line)
     return visible
 
 def pick_start(world, profile, open_options=None):
@@ -1169,7 +1175,12 @@ def prompt_quit_to_title(save_manager):
         print("Enter Y, N, or C.")
 
 def main():
-    world_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_WORLD_PATH
+    parser = argparse.ArgumentParser(description="Run the minimal CYOA engine.")
+    parser.add_argument("world", nargs="?", default=DEFAULT_WORLD_PATH)
+    parser.add_argument("--debug", action="store_true", help="Enable debug commands.")
+    args = parser.parse_args()
+    world_path = args.world
+    debug_mode = args.debug
     world = load_world(world_path)
     selection = select_profile()
     profile = load_profile(selection.profile_path)
@@ -1195,6 +1206,7 @@ def main():
         world_seed=world_seed,
         active_area=active_area,
     )
+    state.debug = debug_mode
 
     def open_options_menu():
         updated, changed = options_menu(
@@ -1215,6 +1227,7 @@ def main():
             world_seed=world_seed,
             active_area=active_area,
         )
+        state.debug = debug_mode
         print(f"\n=== {world['title']} ===")
         print(f"[Profile] {selection.name}")
         state.player["name"] = input("Name your character: ").strip() or "Traveler"
@@ -1270,7 +1283,50 @@ def main():
                 record_seen_ending(state, ending_name)
                 print(f"\n*** Ending reached: {ending_name} ***"); return
 
-            choice = input("> ").strip().lower()
+            raw_choice = input("> ").strip()
+            choice = raw_choice.lower()
+            if state.debug and raw_choice.startswith("/"):
+                parts = raw_choice.split()
+                command = parts[0].lower()
+                if command == "/goto":
+                    if len(parts) < 2:
+                        print("Usage: /goto <node_id>")
+                        continue
+                    target = parts[1]
+                    if target in world.get("nodes", {}) or target in world.get("endings", {}):
+                        state.current_node = target
+                        emit_line(f"[#] Debug: moved to {target}.", state, allow_delay=False)
+                    else:
+                        print(f"[!] Unknown node '{target}'.")
+                    continue
+                if command == "/give":
+                    if len(parts) < 2:
+                        print("Usage: /give <tag_name>")
+                        continue
+                    tag = canonical_tag(" ".join(parts[1:]).strip())
+                    state.player["tags"].append(tag)
+                    state.player["tags"] = canonicalize_tag_list(state.player["tags"])
+                    emit_effect_message(state, f"[#] Debug: Tag granted: {tag}")
+                    continue
+                if command == "/set":
+                    if len(parts) < 3:
+                        print("Usage: /set <faction> <amount>")
+                        continue
+                    faction = parts[1]
+                    try:
+                        amount = int(parts[2])
+                    except ValueError:
+                        print("Amount must be an integer.")
+                        continue
+                    amount = max(DEFAULT_REP_MIN, min(DEFAULT_REP_MAX, amount))
+                    state.player.setdefault("rep", {})[faction] = amount
+                    emit_effect_message(
+                        state,
+                        f"[#] Debug: {faction} reputation set to {amount}.",
+                    )
+                    continue
+                print("Unknown debug command.")
+                continue
             if choice == "q":
                 if prompt_quit_to_title(save_manager):
                     break
