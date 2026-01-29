@@ -18,6 +18,10 @@ _ENTRY_SPEC = (
     ("window_mode", "Window Mode", "window"),
     ("vsync", "VSync", "toggle"),
     ("ui_scale", "UI Scale", "scale"),
+    ("text_speed", "Text Speed", "text_speed"),
+    ("high_contrast", "High Contrast", "toggle"),
+    ("reduce_animations", "Reduce Animations", "toggle"),
+    ("caption_audio_cues", "Caption Audio Cues", "toggle"),
 )
 
 
@@ -110,6 +114,9 @@ def _format_value(value, entry_type: str) -> str:
         return str(value).title()
     if entry_type == "scale":
         return f"{float(value):.2f}x"
+    if entry_type == "text_speed":
+        speed = float(value)
+        return "Instant" if speed <= 0 else f"{speed:.2f}x"
     return str(value)
 
 
@@ -121,6 +128,9 @@ def _adjust_entry(settings: Settings, field: str, entry_type: str, direction: in
     elif entry_type == "scale":
         step = 0.1 * direction
         setattr(settings, field, _clamp_scale(previous + step))
+    elif entry_type == "text_speed":
+        step = 0.25 * direction
+        setattr(settings, field, _clamp_text_speed(previous + step))
     elif entry_type in {"toggle", "window"}:
         _toggle_entry(settings, field, entry_type)
     else:
@@ -142,6 +152,9 @@ def _activate_entry(
     if entry_type == "scale":
         prompt = "Enter UI scale (0.5-2.0, blank to cancel): "
         return _prompt_float(settings, field, prompt, 0.5, 2.0, input_func, print_func)
+    if entry_type == "text_speed":
+        prompt = "Enter text speed (0-3, 0 = instant, blank to cancel): "
+        return _prompt_float(settings, field, prompt, 0.0, 3.0, input_func, print_func)
     if entry_type in {"toggle", "window"}:
         before = getattr(settings, field)
         _toggle_entry(settings, field, entry_type)
@@ -203,4 +216,7 @@ def _clamp_volume(value: float) -> float:
 def _clamp_scale(value: float) -> float:
     return max(0.5, min(2.0, float(value)))
 
+
+def _clamp_text_speed(value: float) -> float:
+    return max(0.0, min(3.0, float(value)))
 

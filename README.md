@@ -9,6 +9,7 @@
 - Enter `i` at any prompt to view your current tags, traits, inventory, and faction reputation.
 - Enter `o` to open the Options screen for audio, display, and UI scale settings.
 - Enter `h` to review the last few story beats, or `q` to quit to the title screen and optionally save.
+- Accessibility settings (text speed, high contrast, reduced animations, caption-friendly cues) are documented in [`docs/accessibility.md`](docs/accessibility.md).
 
 ## Quick Start
 1. **Install Python 3.9 or newer.** The engine is pure Python with no third-party dependencies required for runtime.
