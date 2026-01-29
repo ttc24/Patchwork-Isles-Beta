@@ -10,6 +10,7 @@ Usage: python3 engine_min.py [world.json]
 
 import hashlib
 import json
+import re
 import sys
 import textwrap
 import time
@@ -55,6 +56,38 @@ TAG_ALIASES = {
     "Judge": "Arbiter",
     "Arbiter": "Arbiter",
 }
+
+ANSI_RESET = "\033[0m"
+INLINE_COLOR_MAP = {
+    "trait": "\033[36m",
+    "traits": "\033[36m",
+    "tag": "\033[32m",
+    "tags": "\033[32m",
+    "item": "\033[32m",
+    "items": "\033[32m",
+    "resource": "\033[32m",
+    "resources": "\033[32m",
+    "faction": "\033[33m",
+    "factions": "\033[33m",
+    "locked": "\033[31m",
+    "danger": "\033[31m",
+}
+INLINE_FORMAT_PATTERN = re.compile(r"\{([a-zA-Z_]+):([^}]+)\}")
+
+
+def print_formatted(text: str) -> str:
+    if not text or "{" not in text:
+        return text
+
+    def replace(match: re.Match[str]) -> str:
+        kind = match.group(1).strip().lower()
+        value = match.group(2)
+        color = INLINE_COLOR_MAP.get(kind)
+        if not color:
+            return value
+        return f"{color}{value}{ANSI_RESET}"
+
+    return INLINE_FORMAT_PATTERN.sub(replace, text)
 
 
 def canonical_tag(tag):
@@ -128,19 +161,20 @@ def compute_text_delay(settings: Settings) -> float:
 
 def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> None:
     delay = compute_text_delay(state.settings) if allow_delay else 0.0
+    formatted = print_formatted(text)
     if delay <= 0:
-        print(text)
+        print(formatted)
         return
-    for char in text:
+    for char in formatted:
         print(char, end="", flush=True)
         time.sleep(delay)
     print("")
 
 
 def emit_effect_message(state: "GameState", message: str, *, audio_cue: str | None = None) -> None:
-    emit_line(message, state, allow_delay=True)
+    emit_line(print_formatted(message), state, allow_delay=True)
     if audio_cue and getattr(state.settings, "caption_audio_cues", False):
-        emit_line(f"[Audio Cue] {audio_cue}", state, allow_delay=True)
+        emit_line(print_formatted(f"[Audio Cue] {audio_cue}"), state, allow_delay=True)
 
 
 def format_heading(text: str, settings: Settings) -> str:
@@ -809,6 +843,7 @@ def render_node(node, state):
     for idx, ch in enumerate(visible, start=1):
         choice_text = ch.get("text", f"Choice {idx}")
         choice_text = format_choice_text(choice_text, settings)
+        choice_text = print_formatted(choice_text)
         if getattr(settings, "high_contrast", False):
             print(f"  [{idx}] {choice_text}")
         else:
