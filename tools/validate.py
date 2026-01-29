@@ -15,7 +15,7 @@ DEFAULT_WORLD = REPO_ROOT / "world" / "world.json"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from engine.schema import validate_world
+from engine.engine_min import load_world
 from tools.softlock import analyze_softlocks
 
 
@@ -39,16 +39,12 @@ def main(argv: Sequence[str]) -> None:
     args = parse_args(argv[1:])
     world_path = Path(args.world_path).resolve()
     try:
-        world = load_json(world_path)
+        world = load_world(world_path)
     except json.JSONDecodeError as exc:  # pragma: no cover - defensive error output
         print(f"Failed to parse JSON from {world_path}: {exc}")
         sys.exit(1)
-
-    errors = validate_world(world)
-    if errors:
-        print("Validation failed (path: message):")
-        for err in errors:
-            print(f" - {err}")
+    except ValueError as exc:
+        print(str(exc))
         sys.exit(1)
 
     warnings = analyze_softlocks(world)
