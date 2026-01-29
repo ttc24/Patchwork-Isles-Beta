@@ -252,6 +252,17 @@ def _validate_set_flag(effect: Mapping[str, Any], context: str) -> List[str]:
     return errors
 
 
+def _validate_set_profile_flag(effect: Mapping[str, Any], context: str) -> List[str]:
+    errors: List[str] = []
+    flag = effect.get("flag")
+    value = effect.get("value")
+    if not is_non_empty_str(flag):
+        errors.append(f"{context}: 'set_profile_flag' requires a non-empty string 'flag'.")
+    if not simple_value(value):
+        errors.append(f"{context}: 'set_profile_flag' requires a simple literal 'value'.")
+    return errors
+
+
 def _validate_rep_delta(effect: Mapping[str, Any], context: str) -> List[str]:
     errors: List[str] = []
     faction = effect.get("faction")
@@ -311,6 +322,14 @@ def _validate_unlock_start(effect: Mapping[str, Any], context: str) -> List[str]
     value = effect.get("value")
     if not is_non_empty_str(value):
         errors.append(f"{context}: 'unlock_start' requires a non-empty string 'value'.")
+    return errors
+
+
+def _validate_grant_legacy_tag(effect: Mapping[str, Any], context: str) -> List[str]:
+    errors: List[str] = []
+    value = effect.get("value")
+    if not is_non_empty_str(value):
+        errors.append(f"{context}: 'grant_legacy_tag' requires a non-empty string 'value'.")
     return errors
 
 
@@ -499,5 +518,21 @@ EFFECT_SPECS: Dict[str, EffectSpec] = {
         optional_fields=(),
         field_rules={"value": "non-empty string start id"},
         validate=lambda effect, context, nodes, endings: _validate_unlock_start(effect, context),
+    ),
+    "set_profile_flag": EffectSpec(
+        required_fields=("flag", "value"),
+        optional_fields=(),
+        field_rules={"flag": "non-empty string", "value": "simple literal (string/int/bool/null)"},
+        validate=lambda effect, context, nodes, endings: _validate_set_profile_flag(
+            effect, context
+        ),
+    ),
+    "grant_legacy_tag": EffectSpec(
+        required_fields=("value",),
+        optional_fields=(),
+        field_rules={"value": "non-empty string tag"},
+        validate=lambda effect, context, nodes, endings: _validate_grant_legacy_tag(
+            effect, context
+        ),
     ),
 }
