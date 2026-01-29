@@ -1,11 +1,11 @@
 [tool.black]
 line-length = 100
-target-version = ["py38"]
+target-version = ["py39"]
 include = "\.(py|pyi)$"
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+target-version = "py39"
 src = ["engine", "tools"]
 
 [tool.ruff.lint]
@@ -17,7 +17,7 @@ known-first-party = ["engine", "tools"]
 profile = "black"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_unused_configs = true
 ignore_missing_imports = true
 pretty = true
