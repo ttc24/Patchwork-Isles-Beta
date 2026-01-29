@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import string
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List
@@ -36,12 +39,28 @@ def default_profile() -> dict:
     }
 
 
-def save_profile(profile: dict, path: Path | str) -> None:
+def save_profile(profile: dict, path: Path | str, *, keep_backup: bool = True) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(profile, handle, indent=2)
-        handle.write("\n")
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", delete=False, dir=path.parent, prefix=path.name, suffix=".tmp", encoding="utf-8"
+        ) as tmp_file:
+            json.dump(profile, tmp_file, indent=2)
+            tmp_file.write("\n")
+            tmp_path = Path(tmp_file.name)
+        if keep_backup and path.exists():
+            backup_path = path.with_suffix(path.suffix + ".bak")
+            shutil.copy2(path, backup_path)
+        os.replace(str(tmp_path), str(path))
+    except OSError as exc:
+        print(f"[Profile] Failed to save profile: {exc}", file=sys.stderr)
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
 
 
 def load_profile(path: Path | str) -> dict:

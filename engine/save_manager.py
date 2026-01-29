@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from .save_migrations import SaveMigrationError, migrate_save_payload
+
 
 class SaveError(Exception):
     """Base class for save related failures."""
@@ -83,13 +85,38 @@ class SaveManager:
 
         try:
             payload = self._read_payload(target_path)
+        except SaveMigrationError as err:
+            if backup_path.exists() and target_path != backup_path:
+                self.print(f"[!] Save slot '{normalized}' migration failed: {err}")
+                if self._confirm_restore(normalized):
+                    try:
+                        payload = self._read_payload(backup_path)
+                    except (SaveError, SaveMigrationError) as backup_err:
+                        self.print(
+                            f"[!] Backup for slot '{normalized}' also failed: {backup_err}"
+                        )
+                        return False
+                    self._write_payload(
+                        save_path, backup_path, payload, make_backup=False
+                    )
+                    self.print(
+                        f"[Restore] Backup save applied for slot '{normalized}'."
+                    )
+                else:
+                    self.print("[!] Load cancelled.")
+                    return False
+            else:
+                self.print(
+                    f"[!] Failed to migrate slot '{normalized}': {err}. No backup available."
+                )
+                return False
         except SaveCorruptError as err:
             if backup_path.exists() and target_path != backup_path:
                 self.print(f"[!] Save slot '{normalized}' is corrupted: {err}")
                 if self._confirm_restore(normalized):
                     try:
                         payload = self._read_payload(backup_path)
-                    except SaveError as backup_err:
+                    except (SaveError, SaveMigrationError) as backup_err:
                         self.print(
                             f"[!] Backup for slot '{normalized}' also failed: {backup_err}"
                         )
@@ -208,6 +235,7 @@ class SaveManager:
             raise SaveError("Save file missing.") from exc
         except json.JSONDecodeError as exc:
             raise SaveCorruptError(f"Invalid JSON: {exc}") from exc
+        payload = migrate_save_payload(payload, self.SCHEMA_VERSION)
         self._validate_payload(payload)
         return payload
 
@@ -245,7 +273,7 @@ class SaveManager:
     def _read_metadata(self, path: Path) -> SlotMetadata:
         try:
             payload = self._read_payload(path)
-        except SaveError:
+        except (SaveError, SaveMigrationError):
             return SlotMetadata(slot=path.parent.name)
         metadata = payload.get("metadata", {})
         return SlotMetadata(
