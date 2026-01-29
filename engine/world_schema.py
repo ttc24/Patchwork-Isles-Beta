@@ -187,6 +187,17 @@ def _validate_rep_at_least(condition: Mapping[str, Any], context: str) -> List[s
     return errors
 
 
+def _validate_has_var_gte(condition: Mapping[str, Any], context: str) -> List[str]:
+    errors: List[str] = []
+    var = condition.get("var")
+    value = condition.get("value")
+    if not is_non_empty_str(var):
+        errors.append(f"{context}: 'has_var_gte' requires a non-empty string 'var'.")
+    if not isinstance(value, int):
+        errors.append(f"{context}: 'has_var_gte' requires an integer 'value'.")
+    return errors
+
+
 def _validate_rep_at_least_count(condition: Mapping[str, Any], context: str) -> List[str]:
     errors: List[str] = []
     value = condition.get("value")
@@ -260,6 +271,17 @@ def _validate_hp_delta(effect: Mapping[str, Any], context: str) -> List[str]:
     return errors
 
 
+def _validate_var_value(effect: Mapping[str, Any], context: str, name: str) -> List[str]:
+    errors: List[str] = []
+    var = effect.get("var")
+    value = effect.get("value")
+    if not is_non_empty_str(var):
+        errors.append(f"{context}: '{name}' requires a non-empty string 'var'.")
+    if not isinstance(value, int):
+        errors.append(f"{context}: '{name}' requires an integer 'value'.")
+    return errors
+
+
 def _validate_teleport(
     effect: Mapping[str, Any], context: str, nodes: Mapping[str, Any], endings: Mapping[str, Any]
 ) -> List[str]:
@@ -328,6 +350,12 @@ CONDITION_SPECS: Dict[str, ConditionSpec] = {
         optional_fields=(),
         field_rules={"faction": "non-empty string", "value": "integer reputation threshold"},
         validate=_validate_rep_at_least,
+    ),
+    "has_var_gte": ConditionSpec(
+        required_fields=("var", "value"),
+        optional_fields=(),
+        field_rules={"var": "non-empty string", "value": "integer resource threshold"},
+        validate=_validate_has_var_gte,
     ),
     "rep_at_least_count": ConditionSpec(
         required_fields=("value",),
@@ -435,6 +463,22 @@ EFFECT_SPECS: Dict[str, EffectSpec] = {
         optional_fields=(),
         field_rules={"value": "integer hit point delta"},
         validate=lambda effect, context, nodes, endings: _validate_hp_delta(effect, context),
+    ),
+    "var_delta": EffectSpec(
+        required_fields=("var", "value"),
+        optional_fields=(),
+        field_rules={"var": "non-empty string", "value": "integer resource delta"},
+        validate=lambda effect, context, nodes, endings: _validate_var_value(
+            effect, context, "var_delta"
+        ),
+    ),
+    "set_var": EffectSpec(
+        required_fields=("var", "value"),
+        optional_fields=(),
+        field_rules={"var": "non-empty string", "value": "integer resource value"},
+        validate=lambda effect, context, nodes, endings: _validate_var_value(
+            effect, context, "set_var"
+        ),
     ),
     "teleport": EffectSpec(
         required_fields=("target",),

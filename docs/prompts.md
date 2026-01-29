@@ -8,8 +8,8 @@ All prompts ask Codex to emit JSON that matches the engine schema:
 - Each node contains `title`, `text`, and a list of `choices` (3–4 choices unless noted otherwise).
 - Each choice must include `text` and `target`, plus optional `condition` and `effects`.
 <!-- schema-docs:start -->
-- Allowed condition types: `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `missing_tag`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`.
-- Allowed effect types: `set_flag`, `add_tag`, `remove_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`.
+- Allowed condition types: `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `missing_tag`, `rep_at_least`, `rep_at_least_count`, `has_var_gte`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`.
+- Allowed effect types: `set_flag`, `add_tag`, `remove_tag`, `add_trait`, `rep_delta`, `hp_delta`, `var_delta`, `set_var`, `teleport`, `end_game`, `unlock_start`.
 - Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes.
 <!-- schema-docs:end -->
 
