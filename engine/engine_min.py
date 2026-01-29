@@ -860,11 +860,26 @@ def list_choices(node, state):
     return visible
 
 
-def resolve_action_type(choice, current_node):
+def resolve_choice_target(choice, state):
+    target = choice.get("target")
+    if isinstance(target, str) and target:
+        return target
+    if isinstance(target, list):
+        for entry in target:
+            if not isinstance(entry, dict):
+                continue
+            if meets_condition(entry.get("condition"), state):
+                entry_target = entry.get("target")
+                if isinstance(entry_target, str) and entry_target:
+                    return entry_target
+    return None
+
+
+def resolve_action_type(choice, current_node, state):
     action = choice.get("action")
     if isinstance(action, str) and action in ACTION_TICK_COSTS:
         return action
-    target = choice.get("target")
+    target = resolve_choice_target(choice, state)
     if target and target != current_node:
         return "move"
     return "explore"
@@ -1299,13 +1314,13 @@ def main():
                 print("Pick a valid choice number."); continue
 
             ch = visible[idx-1]
-            action_type = resolve_action_type(ch, node_id)
+            action_type = resolve_action_type(ch, node_id, state)
             state.tick_counter = increment_ticks(state.tick_counter, action_type)
             apply_effects(ch.get("effects"), state)
             if "__ending__" in state.player["flags"]:
                 print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
-            target = ch.get("target")
+            target = resolve_choice_target(ch, state)
             if not target:
                 print("[!] Choice had no target; staying put."); continue
 
