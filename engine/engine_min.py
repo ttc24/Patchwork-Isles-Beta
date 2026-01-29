@@ -20,6 +20,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from engine.options_menu import options_menu
+    from engine.platform import IS_WEB
     from engine.profile_manager import load_profile, save_profile, select_profile
     from engine.save_manager import SaveError, SaveManager
     from engine.schema import normalize_nodes, validate_world
@@ -33,6 +34,7 @@ if __package__ in (None, ""):
     )
 else:
     from .options_menu import options_menu
+    from .platform import IS_WEB
     from .profile_manager import load_profile, save_profile, select_profile
     from .save_manager import SaveError, SaveManager
     from .schema import normalize_nodes, validate_world
@@ -99,6 +101,9 @@ INLINE_FORMAT_PATTERN = re.compile(r"\{([a-zA-Z_]+):([^}]+)\}")
 def print_formatted(text: str) -> str:
     if not text or "{" not in text:
         return text
+
+    if IS_WEB:
+        return INLINE_FORMAT_PATTERN.sub(lambda match: match.group(2), text)
 
     def replace(match: re.Match[str]) -> str:
         kind = match.group(1).strip().lower()
