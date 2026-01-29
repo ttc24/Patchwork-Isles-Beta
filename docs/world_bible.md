@@ -59,6 +59,17 @@ Faction reputation ranges from −2 to +2 and is always earned diegetically.
 
 Use reputation gates sparingly; when you do, ensure a tagless alternative remains available (perhaps at a cost).
 
+### Rivalry Matrix & Hostile Encounters (world header)
+Author faction politics in the world header so reputation shifts ripple across allies and enemies.
+- `faction_relationships`: map a faction to its allies/enemies, e.g. `{ "Wind Choirs": { "Root Court": "enemy", "Skyward": "ally" } }`.
+- `faction_relationship_multipliers`: optional override for `"ally"`/`"enemy"` multipliers (defaults to `+1` and `-1`).
+- `hostile_rep_threshold`: global threshold (default `-5`) used to mark a node as hostile when entering.
+- `faction_hostile_thresholds`: optional per-faction overrides for the hostile threshold.
+- `hostile_outcomes`: node ids for `"game_over"` and `"forced_retreat"` outcomes (defaults to `hostile_game_over` and `hostile_forced_retreat`).
+- `default_hostile_outcome`: which outcome to use when a node becomes hostile (defaults to `"forced_retreat"`).
+
+Nodes can declare ownership with `"faction"` or `"factions"` and optionally set `"hostile_outcome"` to `"game_over"` or `"forced_retreat"`. When entering a node with hostile reputation, the engine routes to the appropriate hostile outcome node with no choices; default fallback nodes are generated if you do not author them.
+
 ## Authoring Rules (per node)
 - 1–2 sentences of vivid prose establishing the scene.
 - 3–5 choices.

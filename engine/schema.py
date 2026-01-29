@@ -265,4 +265,129 @@ def validate_world(world: Mapping[str, Any]) -> List[str]:
                 ctx,
             )
 
+    faction_relationships = world.get("faction_relationships", {})
+    if faction_relationships is not None:
+        if not isinstance(faction_relationships, Mapping):
+            ctx.add(
+                "World data",
+                path("faction_relationships"),
+                "'faction_relationships' must be an object mapping factions to relationships.",
+            )
+        else:
+            valid_relations = {"ally", "enemy"}
+            for faction, relations in faction_relationships.items():
+                if not is_non_empty_str(faction):
+                    ctx.add(
+                        "World data",
+                        path("faction_relationships", faction),
+                        "faction keys must be non-empty strings.",
+                    )
+                    continue
+                if not isinstance(relations, Mapping):
+                    ctx.add(
+                        "World data",
+                        path("faction_relationships", faction),
+                        "relationships must be objects mapping faction ids to 'ally' or 'enemy'.",
+                    )
+                    continue
+                for other, relation in relations.items():
+                    if not is_non_empty_str(other):
+                        ctx.add(
+                            "World data",
+                            path("faction_relationships", faction, other),
+                            "related faction keys must be non-empty strings.",
+                        )
+                        continue
+                    if not isinstance(relation, str) or relation not in valid_relations:
+                        ctx.add(
+                            "World data",
+                            path("faction_relationships", faction, other),
+                            "relationship values must be 'ally' or 'enemy'.",
+                        )
+
+    multipliers = world.get("faction_relationship_multipliers")
+    if multipliers is not None:
+        if not isinstance(multipliers, Mapping):
+            ctx.add(
+                "World data",
+                path("faction_relationship_multipliers"),
+                "'faction_relationship_multipliers' must be an object if provided.",
+            )
+        else:
+            for key, value in multipliers.items():
+                if key not in {"ally", "enemy"}:
+                    ctx.add(
+                        "World data",
+                        path("faction_relationship_multipliers", key),
+                        "only 'ally' and 'enemy' keys are supported.",
+                    )
+                elif not isinstance(value, int):
+                    ctx.add(
+                        "World data",
+                        path("faction_relationship_multipliers", key),
+                        "multipliers must be integers.",
+                    )
+
+    hostile_threshold = world.get("hostile_rep_threshold")
+    if hostile_threshold is not None and not isinstance(hostile_threshold, int):
+        ctx.add(
+            "World data",
+            path("hostile_rep_threshold"),
+            "'hostile_rep_threshold' must be an integer if provided.",
+        )
+
+    hostile_thresholds = world.get("faction_hostile_thresholds")
+    if hostile_thresholds is not None:
+        if not isinstance(hostile_thresholds, Mapping):
+            ctx.add(
+                "World data",
+                path("faction_hostile_thresholds"),
+                "'faction_hostile_thresholds' must be an object mapping factions to integers.",
+            )
+        else:
+            for faction, value in hostile_thresholds.items():
+                if not is_non_empty_str(faction):
+                    ctx.add(
+                        "World data",
+                        path("faction_hostile_thresholds", faction),
+                        "faction keys must be non-empty strings.",
+                    )
+                elif not isinstance(value, int):
+                    ctx.add(
+                        "World data",
+                        path("faction_hostile_thresholds", faction),
+                        "hostile thresholds must be integers.",
+                    )
+
+    hostile_outcomes = world.get("hostile_outcomes")
+    if hostile_outcomes is not None:
+        if not isinstance(hostile_outcomes, Mapping):
+            ctx.add(
+                "World data",
+                path("hostile_outcomes"),
+                "'hostile_outcomes' must be an object mapping outcome types to node ids.",
+            )
+        else:
+            for key, value in hostile_outcomes.items():
+                if key not in {"game_over", "forced_retreat"}:
+                    ctx.add(
+                        "World data",
+                        path("hostile_outcomes", key),
+                        "hostile outcomes only support 'game_over' and 'forced_retreat'.",
+                    )
+                elif value is not None and not is_non_empty_str(value):
+                    ctx.add(
+                        "World data",
+                        path("hostile_outcomes", key),
+                        "hostile outcome node ids must be non-empty strings.",
+                    )
+
+    default_outcome = world.get("default_hostile_outcome")
+    if default_outcome is not None and default_outcome not in {"game_over", "forced_retreat"}:
+        ctx.add(
+            "World data",
+            path("default_hostile_outcome"),
+            "'default_hostile_outcome' must be 'game_over' or 'forced_retreat' if provided.",
+        )
+
     return ctx.errors
