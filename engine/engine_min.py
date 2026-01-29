@@ -461,6 +461,12 @@ def meets_condition(cond, state):
         return required not in player_tags
     if t == "has_trait":
         return has_all(p["traits"], cond.get("value"))
+    if t == "has_var_gte":
+        var = cond.get("var")
+        if not var:
+            return False
+        value = int(cond.get("value", 0))
+        return p["resources"].get(var, 0) >= value
     if t == "rep_at_least":
         return p["rep"].get(cond["faction"], 0) >= int(cond["value"])
     if t == "rep_at_least_count":
@@ -653,6 +659,28 @@ def apply_effect(effect, state):
         if tr not in p["traits"]:
             p["traits"].append(tr)
             emit_effect_message(state, f"[✦] New Trait gained: {tr}", audio_cue="Trait gained.")
+    elif t == "var_delta":
+        var = effect.get("var")
+        if not var:
+            return
+        dv = int(effect.get("value", 0))
+        p["resources"][var] = p["resources"].get(var, 0) + dv
+        emit_effect_message(
+            state,
+            f"[¤] {var} {'+' if dv >= 0 else ''}{dv} -> {p['resources'][var]}",
+            audio_cue="Resources updated.",
+        )
+    elif t == "set_var":
+        var = effect.get("var")
+        if not var:
+            return
+        value = int(effect.get("value", 0))
+        p["resources"][var] = value
+        emit_effect_message(
+            state,
+            f"[¤] {var} set to {p['resources'][var]}",
+            audio_cue="Resources updated.",
+        )
     elif t == "rep_delta":
         fac = effect["faction"]
         dv = int(effect.get("value", 0))
