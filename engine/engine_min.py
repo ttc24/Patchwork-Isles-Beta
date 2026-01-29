@@ -434,10 +434,6 @@ def meets_condition(cond, state):
     t = cond.get("type")
     p = state.player
 
-    if t == "has_item":
-        return cond["value"] in p["inventory"]
-    if t == "missing_item":
-        return cond["value"] not in p["inventory"]
     if t == "flag_eq":
         return p["flags"].get(cond["flag"]) == cond.get("value")
     if t == "has_tag":
@@ -457,6 +453,12 @@ def meets_condition(cond, state):
             return False
         player_tags = set(canonicalize_tag_list(p["tags"]))
         return any(r in player_tags for r in required)
+    if t == "missing_tag":
+        required = canonicalize_tag_value(cond.get("value"))
+        player_tags = set(canonicalize_tag_list(p["tags"]))
+        if isinstance(required, list):
+            return all(r not in player_tags for r in required)
+        return required not in player_tags
     if t == "has_trait":
         return has_all(p["traits"], cond.get("value"))
     if t == "rep_at_least":
@@ -627,17 +629,7 @@ def apply_effect(effect, state):
     t = effect.get("type")
     p = state.player
 
-    if t == "add_item":
-        it = effect["value"]
-        if it not in p["inventory"]:
-            p["inventory"].append(it)
-            emit_effect_message(state, f"[+] You gain '{it}'.", audio_cue="Item acquired.")
-    elif t == "remove_item":
-        it = effect["value"]
-        if it in p["inventory"]:
-            p["inventory"].remove(it)
-            emit_effect_message(state, f"[-] '{it}' removed.", audio_cue="Item removed.")
-    elif t == "set_flag":
+    if t == "set_flag":
         p["flags"][effect["flag"]] = effect.get("value", True)
         emit_effect_message(
             state,
@@ -649,6 +641,12 @@ def apply_effect(effect, state):
         if tg not in p["tags"]:
             p["tags"].append(tg)
             emit_effect_message(state, f"[#] New Tag unlocked: {tg}", audio_cue="Tag unlocked.")
+        p["tags"] = canonicalize_tag_list(p["tags"])
+    elif t == "remove_tag":
+        tg = canonical_tag(effect["value"])
+        if tg in p["tags"]:
+            p["tags"].remove(tg)
+            emit_effect_message(state, f"[#] Tag removed: {tg}", audio_cue="Tag removed.")
         p["tags"] = canonicalize_tag_list(p["tags"])
     elif t == "add_trait":
         tr = effect["value"]

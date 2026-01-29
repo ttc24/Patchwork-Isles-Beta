@@ -351,7 +351,7 @@
                     "text": "Collect the scattered memory seeds.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "memory seed"
                         },
                         {
@@ -514,7 +514,7 @@
                     "text": "Weave the memory seed into a Light-Step anklet.",
                     "condition": [
                         {
-                            "type": "has_item",
+                            "type": "has_tag",
                             "value": "memory seed"
                         },
                         {
@@ -525,7 +525,7 @@
                     ],
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "memory seed"
                         },
                         {
@@ -931,12 +931,12 @@
                 {
                     "text": "Spend a root-writ to fast-track your guest-law hearing docket.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "root-writ"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "root-writ"
                         },
                         {
@@ -950,12 +950,12 @@
                 {
                     "text": "Trade a favor for a Freehands glider run toward the Saltglass engines.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "favor"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "favor"
                         },
                         {
@@ -1074,7 +1074,7 @@
                             "value": 1
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "prism shard"
                         }
                     ],
@@ -1184,12 +1184,12 @@
                 {
                     "text": "Spend a color baffle to signal the Saltglass engine's prism pier.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "color baffle"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "color baffle"
                         },
                         {
@@ -1203,12 +1203,12 @@
                 {
                     "text": "Trade a windbone token for a stewarded lift back to the Startways.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "windbone token"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "windbone token"
                         },
                         {
@@ -1365,7 +1365,7 @@
                     "text": "Spend a prism shard to flood the dais with undeniable proof.",
                     "condition": [
                         {
-                            "type": "has_item",
+                            "type": "has_tag",
                             "value": "prism shard"
                         },
                         {
@@ -1374,7 +1374,7 @@
                     ],
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "prism shard"
                         },
                         {
@@ -1506,12 +1506,12 @@
                 {
                     "text": "Cash in a favor to hire a pilot through the gloom.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "favor"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "favor"
                         },
                         {
@@ -1529,7 +1529,7 @@
                             "value": "Well-Provisioned"
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "favor"
                         },
                         {
@@ -1553,7 +1553,7 @@
                             "value": 1
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "favor"
                         }
                     ],
@@ -1740,7 +1740,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "root-writ"
                         },
                         {
@@ -1755,7 +1755,7 @@
                     "text": "Pledge a season of service to copy a root-writ.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "root-writ"
                         },
                         {
@@ -1810,12 +1810,12 @@
                 {
                     "text": "Submit the root-writ to authorize a correction.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "root-writ"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "root-writ"
                         },
                         {
@@ -1856,7 +1856,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "bronze filament"
                         },
                         {
@@ -1871,7 +1871,7 @@
                     "text": "Offer to cover a loom shift for a bronze filament spool.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "bronze filament"
                         },
                         {
@@ -1890,7 +1890,7 @@
                 {
                     "text": "Carry the bronze filament toward the correction gearroots.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "bronze filament"
                     },
                     "target": "root_orrery_threading"
@@ -1913,7 +1913,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "root-writ"
                         },
                         {
@@ -1928,7 +1928,7 @@
                     "text": "Donate courier notes to earn a copied root-writ.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "root-writ"
                         },
                         {
@@ -1961,7 +1961,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "sap lens"
                         },
                         {
@@ -1985,7 +1985,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "sap lens"
                         },
                         {
@@ -2005,7 +2005,7 @@
                     "text": "Promise to report your findings to borrow a sap lens.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "sap lens"
                         },
                         {
@@ -2063,12 +2063,12 @@
                 {
                     "text": "Apply bronze filament braces to stabilize fractures.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "bronze filament"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "bronze filament"
                         },
                         {
@@ -2220,12 +2220,12 @@
                 {
                     "text": "Submit the root-writ to authorize a correction.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "root-writ"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "root-writ"
                         },
                         {
@@ -2269,12 +2269,12 @@
                 {
                     "text": "Seat the bronze filament through the gearroots.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "bronze filament"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "bronze filament"
                         },
                         {
@@ -2323,12 +2323,12 @@
                 {
                     "text": "Set the sap lens into the focusing cradle.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "sap lens"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "sap lens"
                         },
                         {
@@ -2348,7 +2348,7 @@
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "sap lens"
                         },
                         {
@@ -2673,12 +2673,12 @@
                 {
                     "text": "(Offering) Spend a map sliver to align a mirror corridor into the Saltglass lanes.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "map sliver"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "map sliver"
                         },
                         {
@@ -2692,12 +2692,12 @@
                 {
                     "text": "(Escort) Surrender a windbone token for an updraft escort into the Cloud-Burrow.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "windbone token"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "windbone token"
                         },
                         {
@@ -3280,12 +3280,12 @@
                 {
                     "text": "Spend a favor to hitch a basket-lift into the Cloud-Burrow Warrens.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "favor"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "favor"
                         },
                         {
@@ -3307,12 +3307,12 @@
                 {
                     "text": "Trade a map sliver to plot a Startways drop point.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "map sliver"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "map sliver"
                         },
                         {
@@ -3411,7 +3411,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "shade key"
                         },
                         {
@@ -3441,7 +3441,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "map sliver"
                         },
                         {
@@ -3539,7 +3539,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "color baffle"
                         },
                         {
@@ -3558,7 +3558,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "map sliver"
                         },
                         {
@@ -3860,7 +3860,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "map sliver"
                         },
                         {
@@ -3879,7 +3879,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "color baffle"
                         },
                         {
@@ -3893,12 +3893,12 @@
                 {
                     "text": "Spend a map sliver to unlock the refractor walkway beneath the dunes.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "map sliver"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "map sliver"
                         },
                         {
@@ -4009,7 +4009,7 @@
                 {
                     "text": "Set the treaty dais with your shade key.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "shade key"
                     },
                     "target": "saltglass_treaty_alignment"
@@ -4062,12 +4062,12 @@
                 {
                     "text": "Deploy a color baffle to signal the reef outriders.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "color baffle"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "color baffle"
                         },
                         {
@@ -4111,7 +4111,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "map sliver"
                         },
                         {
@@ -4175,7 +4175,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "color baffle"
                         },
                         {
@@ -4303,7 +4303,7 @@
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "shade key"
                         },
                         {
@@ -4422,7 +4422,7 @@
                             "value": true
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "color baffle"
                         }
                     ],
@@ -4655,7 +4655,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "windbone token"
                         },
                         {
@@ -4754,7 +4754,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "mole-whistle"
                         },
                         {
@@ -4783,7 +4783,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "mole-whistle"
                         },
                         {
@@ -4807,16 +4807,16 @@
                 {
                     "text": "Offer a favor chit to join the burrow's guest ledger.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "favor"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "favor"
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "mole-whistle"
                         },
                         {
@@ -4961,7 +4961,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "windbone token"
                         },
                         {
@@ -5108,7 +5108,7 @@
                 {
                     "text": "Use your burrow map to slip into the service tunnels.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "burrow map"
                     },
                     "effects": [
@@ -5521,7 +5521,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "burrow map"
                         },
                         {
@@ -5535,7 +5535,7 @@
                 {
                     "text": "Blow your mole-whistle to call guides deeper.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "mole-whistle"
                     },
                     "effects": [
@@ -5607,7 +5607,7 @@
                 {
                     "text": "Blow the mole-whistle to open a path toward the updraft well.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "mole-whistle"
                     },
                     "effects": [
@@ -5623,7 +5623,7 @@
                     "text": "Share Saltglass news and accept woven wind-charms.",
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "windbone token"
                         },
                         {
@@ -5848,12 +5848,12 @@
                 {
                     "text": "Spend your windbone token to board an Aeol lift toward the Startways Nexus.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "windbone token"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "windbone token"
                         },
                         {
@@ -5965,7 +5965,7 @@
                 {
                     "text": "Blow your mole-whistle to guide the gust toward the warrens.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "mole-whistle"
                     },
                     "effects": [
@@ -5980,7 +5980,7 @@
                 {
                     "text": "Trace your burrow map for a safer descent.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "burrow map"
                     },
                     "effects": [
@@ -6242,7 +6242,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "codex spine"
                         },
                         {
@@ -6292,12 +6292,12 @@
                 {
                     "text": "(Trickster) Smuggle the copied memoir spool into the binding cradle.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "memoir spool"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "memoir spool"
                         },
                         {
@@ -6372,12 +6372,12 @@
                 {
                     "text": "(Archivist) Seat the recovered codex spine beside the new memoir spools.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "codex spine"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "codex spine"
                         },
                         {
@@ -6412,12 +6412,12 @@
                 {
                     "text": "(Healer) Pour the amber blessing across the codex before it sets.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "amber blessing phial"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "amber blessing phial"
                         },
                         {
@@ -6457,7 +6457,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "amber blessing phial"
                         },
                         {
@@ -6871,7 +6871,7 @@
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "memoir spool"
                         },
                         {
@@ -7532,12 +7532,12 @@
                 {
                     "text": "Pocket an unclaimed slip as payment for the meticulous work.",
                     "condition": {
-                        "type": "missing_item",
+                        "type": "missing_tag",
                         "value": "molting claim slip"
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "molting claim slip"
                         }
                     ],
@@ -7663,12 +7663,12 @@
                 {
                     "text": "Submit the molting claim slip you secured from the vault.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "molting claim slip"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "molting claim slip"
                         },
                         {
@@ -7774,12 +7774,12 @@
                 {
                     "text": "Palm an unclaimed slip while everyone watches the routine.",
                     "condition": {
-                        "type": "missing_item",
+                        "type": "missing_tag",
                         "value": "molting claim slip"
                     },
                     "effects": [
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "molting claim slip"
                         }
                     ],
@@ -8297,12 +8297,12 @@
                 {
                     "text": "Trade your shadow IOU for a market berth.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "shadow IOU"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "shadow IOU"
                         },
                         {
@@ -9344,12 +9344,12 @@
                 {
                     "text": "(Favor) Trade a favor for a private memory graft.",
                     "condition": {
-                        "type": "has_item",
+                        "type": "has_tag",
                         "value": "favor"
                     },
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "favor"
                         },
                         {
@@ -9948,7 +9948,7 @@
                             "value": "Story-Graft"
                         },
                         {
-                            "type": "add_item",
+                            "type": "add_tag",
                             "value": "story_graft_charge"
                         },
                         {
@@ -10005,7 +10005,7 @@
                             "value": "Story-Graft"
                         },
                         {
-                            "type": "has_item",
+                            "type": "has_tag",
                             "value": "story_graft_charge"
                         },
                         {
@@ -10016,7 +10016,7 @@
                     ],
                     "effects": [
                         {
-                            "type": "remove_item",
+                            "type": "remove_tag",
                             "value": "story_graft_charge"
                         },
                         {

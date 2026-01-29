@@ -8,8 +8,8 @@ All prompts ask Codex to emit JSON that matches the engine schema:
 - Each node contains `title`, `text`, and a list of `choices` (3–4 choices unless noted otherwise).
 - Each choice must include `text` and `target`, plus optional `condition` and `effects`.
 <!-- schema-docs:start -->
-- Allowed condition types: `has_item`, `missing_item`, `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`.
-- Allowed effect types: `add_item`, `remove_item`, `set_flag`, `add_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`.
+- Allowed condition types: `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `missing_tag`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`.
+- Allowed effect types: `set_flag`, `add_tag`, `remove_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`.
 - Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes.
 <!-- schema-docs:end -->
 
@@ -58,7 +58,7 @@ For every choice you add:
 - Use a `rep_at_least` condition keyed to "FACTION_Y" with the minimum reputation required.
 - Offer meaningful payoffs: extra `rep_delta`, special items, or shortcuts unlocked via `teleport`.
 - Keep the `target` pointing at valid node IDs or endings that already exist.
-- You may include optional secondary requirements such as `has_item` or `flag_eq` so long as the primary gate is reputation-based.
+- You may include optional secondary requirements such as `has_tag` or `flag_eq` so long as the primary gate is reputation-based.
 
 Example shape:
 {

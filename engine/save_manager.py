@@ -331,6 +331,14 @@ class SaveManager:
 
         if not isinstance(self.state.player, dict):
             self.state.player = {}
+        inventory = self.state.player.get("inventory")
+        if isinstance(inventory, list) and inventory:
+            tags = self.state.player.get("tags")
+            if not isinstance(tags, list):
+                tags = []
+            tags.extend(item for item in inventory if isinstance(item, str))
+            self.state.player["tags"] = tags
+            self.state.player["inventory"] = []
         if not isinstance(self.state.player.get("rep"), dict):
             self.state.player["rep"] = {}
         factions = []

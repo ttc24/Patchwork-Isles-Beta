@@ -53,13 +53,17 @@
         "start_id": {"type": ["string", "null"]},
         "player": {
           "type": "object",
-          "required": ["name", "hp", "tags", "traits", "inventory", "resources", "flags", "rep"],
+          "required": ["name", "hp", "tags", "traits", "resources", "flags", "rep"],
           "properties": {
             "name": {"type": ["string", "null"]},
             "hp": {"type": "integer"},
             "tags": {"type": "array", "items": {"type": "string"}},
             "traits": {"type": "array", "items": {"type": "string"}},
-            "inventory": {"type": "array", "items": {"type": "string"}},
+            "inventory": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Legacy field migrated into player.tags on load."
+            },
             "resources": {
               "type": "object",
               "additionalProperties": {"type": "number"}
