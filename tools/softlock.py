@@ -79,8 +79,6 @@ def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
         endings = {}
 
     choice_meta: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    inbound_choices: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-
     for node_id, index, choice, target, entry_condition, target_path in _iter_choices(nodes):
         gated = _is_gated_condition(choice.get("condition"))
         if entry_condition is not None:
@@ -93,7 +91,6 @@ def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
             "path": choice_path,
         }
         choice_meta[node_id].append(meta)
-        inbound_choices[target].append(meta)
 
     warnings: List[str] = []
 
@@ -149,19 +146,7 @@ def analyze_softlocks(world: Mapping[str, Any]) -> List[str]:
     for start_node in start_nodes:
         if start_node not in nodes:
             continue
-        reachable_all, _ = traverse(start_node, ungated_only=False)
-        reachable_ungated, chain_warnings = traverse(start_node, ungated_only=True)
+        _, chain_warnings = traverse(start_node, ungated_only=True)
         warnings.extend(chain_warnings)
-        gated_only_nodes = sorted(reachable_all - reachable_ungated)
-        for node_id in gated_only_nodes:
-            inbound = [choice for choice in inbound_choices.get(node_id, []) if choice["gated"]]
-            if inbound:
-                choice_paths = ", ".join(choice["path"] for choice in inbound)
-            else:
-                choice_paths = "(no gated inbound choices recorded)"
-            warnings.append(
-                f"{path('nodes', node_id)}: reachable from start '{start_node}'"
-                f" only via gated choices. Choices: {choice_paths}."
-            )
 
     return warnings
