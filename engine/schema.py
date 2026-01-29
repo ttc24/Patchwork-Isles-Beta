@@ -117,14 +117,34 @@ def validate_choice(
     target = choice.get("target")
     if target is None:
         ctx.add(context, path(*path_parts, "target"), "is missing a 'target'.")
-    elif not is_non_empty_str(target):
-        ctx.add(context, path(*path_parts, "target"), "must use a non-empty string 'target'.")
-    elif target not in nodes and target not in endings:
-        ctx.add(
-            context,
-            path(*path_parts, "target"),
-            f"targets unknown destination '{target}'.",
-        )
+    elif is_non_empty_str(target):
+        if target not in nodes and target not in endings:
+            ctx.add(
+                context,
+                path(*path_parts, "target"),
+                f"targets unknown destination '{target}'.",
+            )
+    elif isinstance(target, Sequence) and not isinstance(target, (str, bytes)):
+        if not target:
+            ctx.add(context, path(*path_parts, "target"), "target list must not be empty.")
+        for tgt_index, entry in enumerate(target, start=1):
+            entry_path = (*path_parts, "target", tgt_index - 1)
+            entry_context = f"{context}, target entry {tgt_index}"
+            if not isinstance(entry, Mapping):
+                ctx.add(entry_context, path(*entry_path), "must be an object.")
+                continue
+            entry_target = entry.get("target")
+            if not is_non_empty_str(entry_target):
+                ctx.add(entry_context, path(*entry_path, "target"), "requires non-empty 'target'.")
+            elif entry_target not in nodes and entry_target not in endings:
+                ctx.add(
+                    entry_context,
+                    path(*entry_path, "target"),
+                    f"targets unknown destination '{entry_target}'.",
+                )
+            validate_condition(entry.get("condition"), entry_context, (*entry_path, "condition"), ctx)
+    else:
+        ctx.add(context, path(*path_parts, "target"), "must use a non-empty string or list.")
 
     validate_condition(choice.get("condition"), context, (*path_parts, "condition"), ctx)
 

@@ -90,6 +90,14 @@ See [`docs/planning/v0.9-beta-backlog.md`](docs/planning/v0.9-beta-backlog.md) f
   ```json
   "condition": {"type": "has_tag", "value": "Sneaky"}
   ```
+- **Branch to the first matching conditional target (top-to-bottom):**
+  ```json
+  "target": [
+    {"target": "guarded_gate", "condition": {"type": "has_tag", "value": "Keyholder"}},
+    {"target": "bribe_guard", "condition": {"type": "has_item", "value": "Moon Chit"}},
+    {"target": "turn_away"}
+  ]
+  ```
 - **Require multiple Tags (ALL-of):**
   ```json
   "condition": {"type": "has_tag", "value": ["Weaver", "Diplomat"]}
