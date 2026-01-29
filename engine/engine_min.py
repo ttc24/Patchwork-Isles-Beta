@@ -12,6 +12,7 @@ import hashlib
 import json
 import sys
 import textwrap
+import time
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -32,6 +33,7 @@ DEFAULT_WORLD_PATH = "world/world.json"
 BASE_LINE_WIDTH = 80
 MIN_LINE_WIDTH = 50
 MAX_LINE_WIDTH = 120
+BASE_TEXT_DELAY = 0.02
 
 TAG_ALIASES = {
     "Diplomat": "Emissary",
@@ -86,6 +88,51 @@ def compute_line_width(settings: Settings) -> int:
         scale = 1.0
     width = int(round(BASE_LINE_WIDTH * scale))
     return max(MIN_LINE_WIDTH, min(MAX_LINE_WIDTH, width))
+
+
+def compute_text_delay(settings: Settings) -> float:
+    try:
+        speed = float(getattr(settings, "text_speed", 1.0))
+    except (TypeError, ValueError):
+        speed = 1.0
+    if getattr(settings, "reduce_animations", False):
+        return 0.0
+    if speed <= 0:
+        return 0.0
+    return BASE_TEXT_DELAY / max(speed, 0.1)
+
+
+def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> None:
+    delay = compute_text_delay(state.settings) if allow_delay else 0.0
+    if delay <= 0:
+        print(text)
+        return
+    for char in text:
+        print(char, end="", flush=True)
+        time.sleep(delay)
+    print("")
+
+
+def emit_effect_message(state: "GameState", message: str, *, audio_cue: str | None = None) -> None:
+    emit_line(message, state, allow_delay=True)
+    if audio_cue and getattr(state.settings, "caption_audio_cues", False):
+        emit_line(f"[Audio Cue] {audio_cue}", state, allow_delay=True)
+
+
+def format_heading(text: str, settings: Settings) -> str:
+    return text.upper() if getattr(settings, "high_contrast", False) else text
+
+
+def format_choice_text(text: str, settings: Settings) -> str:
+    return text.upper() if getattr(settings, "high_contrast", False) else text
+
+
+def separator(width: int, settings: Settings, *, primary: bool) -> str:
+    if getattr(settings, "high_contrast", False):
+        char = "#" if primary else "="
+    else:
+        char = "=" if primary else "-"
+    return char * width
 
 
 def merge_profile_starts(world, profile):
@@ -289,9 +336,27 @@ def apply_runtime_settings(state: GameState, new_settings: Settings, *, announce
         updates.append(
             f"[UI] Scale adjusted to {state.settings.ui_scale:.2f}x (line width {state.line_width})."
         )
+    if previous.text_speed != state.settings.text_speed:
+        if state.settings.text_speed <= 0:
+            updates.append("[UI] Text speed set to instant.")
+        else:
+            updates.append(f"[UI] Text speed set to {state.settings.text_speed:.2f}x.")
+    if previous.high_contrast != state.settings.high_contrast:
+        updates.append(
+            f"[Accessibility] High contrast {'enabled' if state.settings.high_contrast else 'disabled'}."
+        )
+    if previous.reduce_animations != state.settings.reduce_animations:
+        updates.append(
+            f"[Accessibility] Reduce animations {'enabled' if state.settings.reduce_animations else 'disabled'}."
+        )
+    if previous.caption_audio_cues != state.settings.caption_audio_cues:
+        updates.append(
+            "[Accessibility] Caption audio cues "
+            f"{'enabled' if state.settings.caption_audio_cues else 'disabled'}."
+        )
 
     for message in updates:
-        print(message)
+        emit_line(message, state, allow_delay=True)
 
     return state.settings
 
@@ -399,32 +464,55 @@ def apply_effect(effect, state):
     if t == "add_item":
         it = effect["value"]
         if it not in p["inventory"]:
-            p["inventory"].append(it); print(f"[+] You gain '{it}'.")
+            p["inventory"].append(it)
+            emit_effect_message(state, f"[+] You gain '{it}'.", audio_cue="Item acquired.")
     elif t == "remove_item":
         it = effect["value"]
         if it in p["inventory"]:
-            p["inventory"].remove(it); print(f"[-] '{it}' removed.")
+            p["inventory"].remove(it)
+            emit_effect_message(state, f"[-] '{it}' removed.", audio_cue="Item removed.")
     elif t == "set_flag":
         p["flags"][effect["flag"]] = effect.get("value", True)
-        print(f"[*] Flag {effect['flag']} set to {p['flags'][effect['flag']]}")
+        emit_effect_message(
+            state,
+            f"[*] Flag {effect['flag']} set to {p['flags'][effect['flag']]}",
+            audio_cue="Status updated.",
+        )
     elif t == "add_tag":
         tg = canonical_tag(effect["value"])
         if tg not in p["tags"]:
-            p["tags"].append(tg); print(f"[#] New Tag unlocked: {tg}")
+            p["tags"].append(tg)
+            emit_effect_message(state, f"[#] New Tag unlocked: {tg}", audio_cue="Tag unlocked.")
         p["tags"] = canonicalize_tag_list(p["tags"])
     elif t == "add_trait":
         tr = effect["value"]
         if tr not in p["traits"]:
-            p["traits"].append(tr); print(f"[✦] New Trait gained: {tr}")
+            p["traits"].append(tr)
+            emit_effect_message(state, f"[✦] New Trait gained: {tr}", audio_cue="Trait gained.")
     elif t == "rep_delta":
         fac = effect["faction"]; dv = int(effect.get("value",0))
         p["rep"][fac] = clamp(p["rep"].get(fac,0)+dv, -2, 2)
-        print(f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {p['rep'][fac]}")
+        emit_effect_message(
+            state,
+            f"[≈] Rep {fac} {'+' if dv>=0 else ''}{dv} -> {p['rep'][fac]}",
+            audio_cue="Reputation changed.",
+        )
     elif t == "hp_delta":
         dv = int(effect.get("value",0))
-        p["hp"] += dv; print(f"[♥] HP {'+' if dv>=0 else ''}{dv} -> {p['hp']}")
+        p["hp"] += dv
+        emit_effect_message(
+            state,
+            f"[♥] HP {'+' if dv>=0 else ''}{dv} -> {p['hp']}",
+            audio_cue="Health changed.",
+        )
     elif t == "teleport":
-        goto = effect["target"]; print(f"[~] You are moved to '{goto}'."); state.current_node = goto
+        goto = effect["target"]
+        emit_effect_message(
+            state,
+            f"[~] You are moved to '{goto}'.",
+            audio_cue="Location transition.",
+        )
+        state.current_node = goto
     elif t == "end_game":
         p["flags"]["__ending__"] = effect.get("value", "Unnamed Ending")
         record_seen_ending(state, p["flags"]["__ending__"])
@@ -437,7 +525,11 @@ def apply_effect(effect, state):
             unlocked.append(start_id)
             save_profile(state.profile, state.profile_path)
             title = get_start_title(state.world, start_id)
-            print(f"[#] Origin unlocked: {title}")
+            emit_effect_message(
+                state,
+                f"[#] Origin unlocked: {title}",
+                audio_cue="Origin unlocked.",
+            )
         merge_profile_starts(state.world, state.profile)
     elif t == "set_profile_flag":
         flag = effect.get("flag")
@@ -449,7 +541,11 @@ def apply_effect(effect, state):
         if previous != value:
             flags[flag] = value
             save_profile(state.profile, state.profile_path)
-            print(f"[Profile] {flag} set to {value}.")
+            emit_effect_message(
+                state,
+                f"[Profile] {flag} set to {value}.",
+                audio_cue="Profile updated.",
+            )
         else:
             flags[flag] = value
     elif t == "grant_legacy_tag":
@@ -460,7 +556,11 @@ def apply_effect(effect, state):
         if legacy not in tags:
             tags.append(legacy)
             save_profile(state.profile, state.profile_path)
-            print(f"[#] Legacy Tag granted: {legacy}")
+            emit_effect_message(
+                state,
+                f"[#] Legacy Tag granted: {legacy}",
+                audio_cue="Legacy tag granted.",
+            )
 
 def apply_effects(effects, state):
     for eff in effects or []:
@@ -476,31 +576,40 @@ def list_choices(node, state):
 
 def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
-    print("\n" + "=" * width)
-    print(node.get("title", state.world["title"]))
-    print("-" * width)
+    settings = state.settings
+    print("\n" + separator(width, settings, primary=True))
+    print(format_heading(node.get("title", state.world["title"]), settings))
+    print(separator(width, settings, primary=False))
 
     body = node.get("text", "")
     if body:
         for paragraph in body.split("\n"):
             if paragraph.strip():
-                print(textwrap.fill(paragraph, width=width))
+                for line in textwrap.wrap(paragraph, width=width):
+                    emit_line(line, state, allow_delay=True)
             else:
                 print("")
     else:
         print("")
 
     if node.get("image"):
-        print(f"[Image: {node['image']}]")
+        emit_line(f"[Image: {node['image']}]", state, allow_delay=True)
 
     print("")
     summary_text = state.summary()
+    if getattr(settings, "high_contrast", False):
+        summary_text = f"STATUS: {summary_text}"
     for line in textwrap.wrap(summary_text, width=width):
-        print(line)
-    print("-" * width)
+        emit_line(line, state, allow_delay=True)
+    print(separator(width, settings, primary=False))
     visible = list_choices(node, state)
     for idx, ch in enumerate(visible, start=1):
-        print(f"  {idx}. {ch.get('text', f'Choice {idx}')}")
+        choice_text = ch.get("text", f"Choice {idx}")
+        choice_text = format_choice_text(choice_text, settings)
+        if getattr(settings, "high_contrast", False):
+            print(f"  [{idx}] {choice_text}")
+        else:
+            print(f"  {idx}. {choice_text}")
     if state.current_node not in state.world.get("endings", {}):
         commands = [
             "P. Pause",
@@ -511,7 +620,10 @@ def render_node(node, state):
             "O. Options",
             "Q. Quit to Title",
         ]
-        print("  " + "    ".join(commands))
+        commands_line = "  " + "    ".join(commands)
+        if getattr(settings, "high_contrast", False):
+            commands_line = "  COMMANDS: " + " | ".join(commands)
+        print(commands_line)
     return visible
 
 def pick_start(world, profile, open_options=None):

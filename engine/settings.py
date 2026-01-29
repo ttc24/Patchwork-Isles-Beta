@@ -28,6 +28,10 @@ class Settings:
     window_mode: str = "windowed"
     vsync: bool = True
     ui_scale: float = 1.0
+    text_speed: float = 1.0
+    high_contrast: bool = False
+    reduce_animations: bool = False
+    caption_audio_cues: bool = False
 
     _WINDOW_MODES = {"windowed", "fullscreen"}
 
@@ -43,6 +47,10 @@ class Settings:
 
         self.vsync = bool(self.vsync)
         self.ui_scale = _clamp(float(self.ui_scale), 0.5, 2.0)
+        self.text_speed = _clamp(float(self.text_speed), 0.0, 3.0)
+        self.high_contrast = bool(self.high_contrast)
+        self.reduce_animations = bool(self.reduce_animations)
+        self.caption_audio_cues = bool(self.caption_audio_cues)
         return self
 
     def copy(self) -> "Settings":
@@ -81,6 +89,10 @@ class Settings:
             window_mode=str(data.get("window_mode", "windowed")),
             vsync=_as_bool("vsync", True),
             ui_scale=_as_float("ui_scale", 1.0),
+            text_speed=_as_float("text_speed", 1.0),
+            high_contrast=_as_bool("high_contrast", False),
+            reduce_animations=_as_bool("reduce_animations", False),
+            caption_audio_cues=_as_bool("caption_audio_cues", False),
         )
         return settings.clamp()
 
@@ -119,4 +131,3 @@ def save_settings(settings: Settings, path: Path | str = SETTINGS_PATH) -> Setti
             except OSError:
                 pass
     return sanitized
-
