@@ -60,6 +60,14 @@ TAG_ALIASES = {
 
 ANSI_RESET = "\033[0m"
 
+
+def emit_print(*args, **kwargs) -> None:
+    print(*args, **kwargs)
+
+
+def read_input(prompt: str = "") -> str:
+    return input(prompt)
+
 DEFAULT_REP_MIN = -10
 DEFAULT_REP_MAX = 10
 REPUTATION_TIERS = [
@@ -179,12 +187,12 @@ def emit_line(text: str, state: "GameState", *, allow_delay: bool = True) -> Non
     delay = compute_text_delay(state.settings) if allow_delay else 0.0
     formatted = print_formatted(text)
     if delay <= 0:
-        print(formatted)
+        emit_print(formatted)
         return
     for char in formatted:
-        print(char, end="", flush=True)
+        emit_print(char, end="", flush=True)
         time.sleep(delay)
-    print("")
+    emit_print("")
 
 
 def emit_effect_message(state: "GameState", message: str, *, audio_cue: str | None = None) -> None:
@@ -1091,15 +1099,15 @@ def summarize_choice_requirements(condition):
 def render_node(node, state):
     width = getattr(state, "line_width", BASE_LINE_WIDTH)
     settings = state.settings
-    print("\n" + separator(width, settings, primary=True))
-    print(format_heading(node.get("title", state.world["title"]), settings))
-    print(separator(width, settings, primary=False))
+    emit_print("\n" + separator(width, settings, primary=True))
+    emit_print(format_heading(node.get("title", state.world["title"]), settings))
+    emit_print(separator(width, settings, primary=False))
 
     art_text = read_world_art(state, node.get("art"))
     if art_text:
         for line in art_text.splitlines():
             emit_line(line, state, allow_delay=True)
-        print("")
+        emit_print("")
 
     body = node.get("text", "")
     if body:
@@ -1108,20 +1116,20 @@ def render_node(node, state):
                 for line in textwrap.wrap(paragraph, width=width):
                     emit_line(line, state, allow_delay=True)
             else:
-                print("")
+                emit_print("")
     else:
-        print("")
+        emit_print("")
 
     if node.get("image"):
         emit_line(f"[Image: {node['image']}]", state, allow_delay=True)
 
-    print("")
+    emit_print("")
     summary_text = state.summary()
     if getattr(settings, "high_contrast", False):
         summary_text = f"STATUS: {summary_text}"
     for line in textwrap.wrap(summary_text, width=width):
         emit_line(line, state, allow_delay=True)
-    print(separator(width, settings, primary=False))
+    emit_print(separator(width, settings, primary=False))
     visible = list_choices(node, state)
     for idx, ch in enumerate(visible, start=1):
         choice_text = ch.get("text", f"Choice {idx}")
@@ -1136,9 +1144,9 @@ def render_node(node, state):
         choice_text = format_choice_text(choice_text, settings)
         choice_text = print_formatted(choice_text)
         if getattr(settings, "high_contrast", False):
-            print(f"  [{idx}] {choice_text}")
+            emit_print(f"  [{idx}] {choice_text}")
         else:
-            print(f"  {idx}. {choice_text}")
+            emit_print(f"  {idx}. {choice_text}")
     if state.current_node not in state.world.get("endings", {}):
         commands = [
             "P. Pause",
@@ -1152,12 +1160,12 @@ def render_node(node, state):
         commands_line = "  " + "    ".join(commands)
         if getattr(settings, "high_contrast", False):
             commands_line = "  COMMANDS: " + " | ".join(commands)
-        print(commands_line)
+        emit_print(commands_line)
         if getattr(state, "debug", False):
             debug_line = "  DEBUG: /goto, /give, /set"
             if getattr(settings, "high_contrast", False):
                 debug_line = "  DEBUG COMMANDS: /goto, /give, /set"
-            print(debug_line)
+            emit_print(debug_line)
     return visible
 
 def pick_start(world, profile, open_options=None):
@@ -1178,7 +1186,7 @@ def pick_start(world, profile, open_options=None):
         return "start", [], None
 
     while True:
-        print("Choose your origin:")
+        emit_print("Choose your origin:")
         display = []
         index = 0
 
@@ -1186,23 +1194,23 @@ def pick_start(world, profile, open_options=None):
             nonlocal index
             if not entries:
                 return
-            print(title)
+            emit_print(title)
             for sid, start in entries:
                 index += 1
                 display.append((sid, start))
                 tags = canonicalize_tag_list(start.get("tags", []))
                 tag_str = ", ".join(tags) if tags else "—"
                 node = start.get("node", "?")
-                print(
+                emit_print(
                     f"  {index}. {start.get('title','Start')} (Node: {node} | Tags: {tag_str})"
                 )
                 blurb = start.get("blurb")
                 if blurb:
                     for line in blurb.splitlines():
-                        print(f"     {line}")
+                        emit_print(f"     {line}")
                 else:
-                    print("     —")
-            print("")
+                    emit_print("     —")
+            emit_print("")
 
         show_group("Core Starts (always available):", core)
         show_group("Unlocked Starts (profile):", unlocked)
@@ -1211,12 +1219,12 @@ def pick_start(world, profile, open_options=None):
             return "start", [], None
 
         if open_options is not None:
-            print("  O. Options")
+            emit_print("  O. Options")
 
-        selection = input("> ").strip().lower()
+        selection = read_input("> ").strip().lower()
         if selection in {"o", "options"} and open_options is not None:
             open_options()
-            print("")
+            emit_print("")
             continue
         if selection.isdigit():
             i = int(selection)
@@ -1225,16 +1233,16 @@ def pick_start(world, profile, open_options=None):
                 tags = canonicalize_tag_list(start.get("tags", []))
                 return start["node"], tags, sid
         if open_options is not None:
-            print("Pick a valid number or press O for options.")
+            emit_print("Pick a valid number or press O for options.")
         else:
-            print("Pick a valid number.")
+            emit_print("Pick a valid number.")
 
 def show_slot_overview(save_manager):
     slots = save_manager.list_slots()
     if not slots:
-        print("No manual saves recorded yet.")
+        emit_print("No manual saves recorded yet.")
         return
-    print("Available saves:")
+    emit_print("Available saves:")
     for meta in slots:
         details = []
         if meta.player_name:
@@ -1245,32 +1253,32 @@ def show_slot_overview(save_manager):
             details.append(meta.saved_at)
         info = " ".join(details)
         if info:
-            print(f"  - {meta.slot}: {info}")
+            emit_print(f"  - {meta.slot}: {info}")
         else:
-            print(f"  - {meta.slot}")
+            emit_print(f"  - {meta.slot}")
 
 
 def prompt_slot_name(action, save_manager):
     show_slot_overview(save_manager)
-    raw = input(f"Enter slot name to {action} (blank to cancel): ").strip()
+    raw = read_input(f"Enter slot name to {action} (blank to cancel): ").strip()
     if not raw:
-        print(f"{action.title()} cancelled.")
+        emit_print(f"{action.title()} cancelled.")
         return None
     return raw
 
 
 def pause_menu(state, save_manager, open_options=None):
     while True:
-        print("\n=== Pause Menu ===")
-        print("1. Save Game")
-        print("2. Load Game")
-        print("3. Quick Save")
-        print("4. Quick Load")
+        emit_print("\n=== Pause Menu ===")
+        emit_print("1. Save Game")
+        emit_print("2. Load Game")
+        emit_print("3. Quick Save")
+        emit_print("4. Quick Load")
         if open_options is not None:
-            print("5. Options")
-        print("R. Resume")
-        print("Q. Quit to Title")
-        choice = input("> ").strip().lower()
+            emit_print("5. Options")
+        emit_print("R. Resume")
+        emit_print("Q. Quit to Title")
+        choice = read_input("> ").strip().lower()
 
         if choice in {"r", "resume"}:
             return "resume"
@@ -1283,7 +1291,7 @@ def pause_menu(state, save_manager, open_options=None):
             try:
                 save_manager.save(slot)
             except SaveError as exc:
-                print(f"[!] {exc}")
+                emit_print(f"[!] {exc}")
             continue
         if choice == "2":
             slot = prompt_slot_name("load", save_manager)
@@ -1293,7 +1301,7 @@ def pause_menu(state, save_manager, open_options=None):
                 if save_manager.load(slot):
                     return "loaded"
             except SaveError as exc:
-                print(f"[!] {exc}")
+                emit_print(f"[!] {exc}")
             continue
         if choice == "3":
             save_manager.save(save_manager.QUICK_SLOT, label="Quick Save")
@@ -1305,12 +1313,12 @@ def pause_menu(state, save_manager, open_options=None):
         if choice == "5" and open_options is not None:
             open_options()
             continue
-        print("Pick a valid pause option.")
+        emit_print("Pick a valid pause option.")
 
 def show_history(state, page_size=5):
     entries = list(reversed(state.history))
     if not entries:
-        print("No history yet.")
+        emit_print("No history yet.")
         return
     total_pages = max(1, (len(entries) + page_size - 1) // page_size)
     page = 0
@@ -1318,34 +1326,34 @@ def show_history(state, page_size=5):
         start = page * page_size
         end = start + page_size
         page_entries = entries[start:end]
-        print(f"\n=== History (Page {page + 1}/{total_pages}) ===")
+        emit_print(f"\n=== History (Page {page + 1}/{total_pages}) ===")
         for idx, entry in enumerate(page_entries, start=start + 1):
             origin = entry.get("from") or "?"
             target = entry.get("to") or "?"
             choice = entry.get("choice") or "—"
-            print(f"{idx}. {origin} -> {target} | {choice}")
-        print("N. Next  P. Previous  Q. Back")
-        selection = input("> ").strip().lower()
+            emit_print(f"{idx}. {origin} -> {target} | {choice}")
+        emit_print("N. Next  P. Previous  Q. Back")
+        selection = read_input("> ").strip().lower()
         if selection in {"q", "back", "quit"}:
             return
         if selection in {"n", "next"}:
             if page + 1 < total_pages:
                 page += 1
             else:
-                print("Already at the last page.")
+                emit_print("Already at the last page.")
             continue
         if selection in {"p", "prev", "previous"}:
             if page > 0:
                 page -= 1
             else:
-                print("Already at the first page.")
+                emit_print("Already at the first page.")
             continue
-        print("Pick N, P, or Q.")
+        emit_print("Pick N, P, or Q.")
 
 
 def prompt_quit_to_title(save_manager):
     while True:
-        response = input("Save before returning to title? (y/n, or c to cancel): ").strip().lower()
+        response = read_input("Save before returning to title? (y/n, or c to cancel): ").strip().lower()
         if response in {"c", "cancel"}:
             return False
         if response in {"n", "no"}:
@@ -1357,10 +1365,10 @@ def prompt_quit_to_title(save_manager):
             try:
                 save_manager.save(slot)
             except SaveError as exc:
-                print(f"[!] {exc}")
+                emit_print(f"[!] {exc}")
                 return False
             return True
-        print("Enter Y, N, or C.")
+        emit_print("Enter Y, N, or C.")
 
 def main():
     parser = argparse.ArgumentParser(description="Run the minimal CYOA engine.")
@@ -1418,9 +1426,9 @@ def main():
         )
         state.world_path = world_path
         state.debug = debug_mode
-        print(f"\n=== {world['title']} ===")
-        print(f"[Profile] {selection.name}")
-        state.player["name"] = input("Name your character: ").strip() or "Traveler"
+        emit_print(f"\n=== {world['title']} ===")
+        emit_print(f"[Profile] {selection.name}")
+        state.player["name"] = read_input("Name your character: ").strip() or "Traveler"
 
         for fac in world.get("factions", []):
             state.player["rep"][fac] = 0
@@ -1441,7 +1449,7 @@ def main():
                 newly_applied.append(t)
         state.player["tags"] = canonicalize_tag_list(state.player["tags"])
         if newly_applied:
-            print(f"[#] Legacy Tags active this run: {', '.join(newly_applied)}")
+            emit_print(f"[#] Legacy Tags active this run: {', '.join(newly_applied)}")
 
         return SaveManager(state, base_path=selection.save_root)
 
@@ -1453,7 +1461,7 @@ def main():
             node_id = state.current_node
             node = world["nodes"].get(node_id)
             if not node:
-                print(f"[!] Missing node '{node_id}'. Exiting."); return
+                emit_print(f"[!] Missing node '{node_id}'. Exiting."); return
 
             hostile_target = resolve_hostile_node(state, node_id, node)
             if hostile_target:
@@ -1462,7 +1470,7 @@ def main():
 
             apply_effects(node.get("on_enter"), state)
             if "__ending__" in state.player["flags"]:
-                print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
+                emit_print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
             visible = render_node(node, state)
 
@@ -1471,27 +1479,27 @@ def main():
             if node_id in world.get("endings", {}):
                 ending_name = world["endings"][node_id]
                 record_seen_ending(state, ending_name)
-                print(f"\n*** Ending reached: {ending_name} ***"); return
+                emit_print(f"\n*** Ending reached: {ending_name} ***"); return
 
-            raw_choice = input("> ").strip()
+            raw_choice = read_input("> ").strip()
             choice = raw_choice.lower()
             if state.debug and raw_choice.startswith("/"):
                 parts = raw_choice.split()
                 command = parts[0].lower()
                 if command == "/goto":
                     if len(parts) < 2:
-                        print("Usage: /goto <node_id>")
+                        emit_print("Usage: /goto <node_id>")
                         continue
                     target = parts[1]
                     if target in world.get("nodes", {}) or target in world.get("endings", {}):
                         state.current_node = target
                         emit_line(f"[#] Debug: moved to {target}.", state, allow_delay=False)
                     else:
-                        print(f"[!] Unknown node '{target}'.")
+                        emit_print(f"[!] Unknown node '{target}'.")
                     continue
                 if command == "/give":
                     if len(parts) < 2:
-                        print("Usage: /give <tag_name>")
+                        emit_print("Usage: /give <tag_name>")
                         continue
                     tag = canonical_tag(" ".join(parts[1:]).strip())
                     state.player["tags"].append(tag)
@@ -1500,13 +1508,13 @@ def main():
                     continue
                 if command == "/set":
                     if len(parts) < 3:
-                        print("Usage: /set <faction> <amount>")
+                        emit_print("Usage: /set <faction> <amount>")
                         continue
                     faction = parts[1]
                     try:
                         amount = int(parts[2])
                     except ValueError:
-                        print("Amount must be an integer.")
+                        emit_print("Amount must be an integer.")
                         continue
                     amount = max(DEFAULT_REP_MIN, min(DEFAULT_REP_MAX, amount))
                     state.player.setdefault("rep", {})[faction] = amount
@@ -1515,7 +1523,7 @@ def main():
                         f"[#] Debug: {faction} reputation set to {amount}.",
                     )
                     continue
-                print("Unknown debug command.")
+                emit_print("Unknown debug command.")
                 continue
             if choice == "q":
                 if prompt_quit_to_title(save_manager):
@@ -1533,19 +1541,19 @@ def main():
             if choice == "h":
                 show_history(state); continue
             if choice == "i":
-                print("Traits:", ", ".join(state.player["traits"]) or "—")
-                print("Key Items:", ", ".join(state.player["tags"]) or "—")
-                print("Supplies:", format_resources(state.player.get("resources", {})))
-                print("Reputation:", format_reputation_display(state.player.get("rep", {})))
+                emit_print("Traits:", ", ".join(state.player["traits"]) or "—")
+                emit_print("Key Items:", ", ".join(state.player["tags"]) or "—")
+                emit_print("Supplies:", format_resources(state.player.get("resources", {})))
+                emit_print("Reputation:", format_reputation_display(state.player.get("rep", {})))
                 continue
             if choice == "t":
-                print("Tags:", ", ".join(state.player["tags"]) or "—")
-                print("Traits:", ", ".join(state.player["traits"]) or "—"); continue
+                emit_print("Tags:", ", ".join(state.player["tags"]) or "—")
+                emit_print("Traits:", ", ".join(state.player["traits"]) or "—"); continue
             if choice == "s":
                 try:
                     save_manager.save(save_manager.QUICK_SLOT, label="Quick Save")
                 except SaveError as exc:
-                    print(f"[!] {exc}")
+                    emit_print(f"[!] {exc}")
                 continue
             if choice == "l":
                 if save_manager.load(save_manager.QUICK_SLOT):
@@ -1554,10 +1562,10 @@ def main():
             if choice == "o":
                 open_options_menu(); continue
             if not choice.isdigit():
-                print("Enter a number or P/S/L/I/H/O/Q."); continue
+                emit_print("Enter a number or P/S/L/I/H/O/Q."); continue
             idx = int(choice)
             if not (1 <= idx <= len(visible)):
-                print("Pick a valid choice number."); continue
+                emit_print("Pick a valid choice number."); continue
 
             ch = visible[idx-1]
             action_type = resolve_action_type(ch, node_id, state)
@@ -1565,11 +1573,11 @@ def main():
                 state.tick_counter = increment_ticks(state.tick_counter, action_type)
             apply_effects(ch.get("effects"), state)
             if "__ending__" in state.player["flags"]:
-                print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
+                emit_print(f"\n*** Ending reached: {state.player['flags']['__ending__']} ***"); return
 
             target = resolve_choice_target(ch, state)
             if not target:
-                print("[!] Choice had no target; staying put."); continue
+                emit_print("[!] Choice had no target; staying put."); continue
 
             state.record_transition(node_id, target, ch.get("text","choice"))
             state.current_node = target
@@ -1577,10 +1585,10 @@ def main():
             if state.player["hp"] <= 0:
                 demise = "A Short Tale"
                 record_seen_ending(state, demise)
-                print(f"\n*** You have perished. Ending: '{demise}' ***"); return
+                emit_print(f"\n*** You have perished. Ending: '{demise}' ***"); return
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n[Interrupted] Bye.")
+        emit_print("\n[Interrupted] Bye.")
