@@ -69,6 +69,11 @@ Share the resulting `dist/Patchwork-Isles-YYYYMMDD.zip`. For step-by-step usage,
 See [`docs/planning/v0.9-beta-backlog.md`](docs/planning/v0.9-beta-backlog.md) for the full milestone issue list.
 
 ## Authoring Quick Reference
+<!-- schema-docs:start -->
+- **Allowed condition types:** `has_item`, `missing_item`, `flag_eq`, `has_tag`, `has_advanced_tag`, `has_trait`, `rep_at_least`, `rep_at_least_count`, `profile_flag_eq`, `profile_flag_is_true`, `profile_flag_is_false`
+- **Allowed effect types:** `add_item`, `remove_item`, `set_flag`, `add_tag`, `add_trait`, `rep_delta`, `hp_delta`, `teleport`, `end_game`, `unlock_start`
+- _Regenerate docs with `python tools/generate_schema_docs.py` when the schema spec changes._
+<!-- schema-docs:end -->
 - **Gate a choice by Tag:**
   ```json
   "condition": {"type": "has_tag", "value": "Sneaky"}
