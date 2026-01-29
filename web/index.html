@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Patchwork Isles (Web)</title>
+    <link
+      rel="stylesheet"
+      href="https://pyscript.net/releases/2024.1.1/core.css"
+    />
+    <script
+      type="module"
+      src="https://pyscript.net/releases/2024.1.1/core.js"
+    ></script>
+    <py-config>
+      [[fetch]]
+      files = ["engine_min.py", "world.json"]
+    </py-config>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        margin: 2rem;
+        background: #0f1115;
+        color: #f5f5f5;
+      }
+      #status {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #1c212b;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Patchwork Isles</h1>
+    <p>
+      Loading the story data and engine directly from this <code>/web</code>
+      directory.
+    </p>
+    <div id="status">Booting…</div>
+    <py-script>
+      import json
+      from pyscript import display
+
+      with open("world.json", "r", encoding="utf-8") as handle:
+          world = json.load(handle)
+
+      display(
+          f"Loaded {len(world.get('nodes', []))} nodes from world.json.",
+          target="status",
+      )
+    </py-script>
+  </body>
+</html>
