@@ -1,0 +1,154 @@
+"""Profile selection and management utilities."""
+
+from __future__ import annotations
+
+import json
+import string
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, List
+
+
+class ProfileError(Exception):
+    """Raised when a profile cannot be created or loaded."""
+
+
+PROFILE_FILENAME = "profile.json"
+DEFAULT_PROFILE_ROOT = Path("profiles")
+DEFAULT_SAVE_ROOT = Path("saves")
+_VALID_PROFILE_CHARS = set(string.ascii_lowercase + string.digits + "-_")
+
+
+@dataclass(frozen=True)
+class ProfileSelection:
+    name: str
+    profile_path: Path
+    save_root: Path
+
+
+def default_profile() -> dict:
+    return {
+        "unlocked_starts": [],
+        "legacy_tags": [],
+        "seen_endings": [],
+        "flags": {},
+    }
+
+
+def save_profile(profile: dict, path: Path | str) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(profile, handle, indent=2)
+        handle.write("\n")
+
+
+def load_profile(path: Path | str) -> dict:
+    path = Path(path)
+    if not path.exists():
+        profile = default_profile()
+        save_profile(profile, path)
+        return profile
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    data.setdefault("unlocked_starts", [])
+    data.setdefault("legacy_tags", [])
+    data.setdefault("seen_endings", [])
+    data.setdefault("flags", {})
+    save_profile(data, path)
+    return data
+
+
+def _normalize_profile_name(name: str) -> str:
+    cleaned = "".join(ch for ch in name.strip().lower() if ch in _VALID_PROFILE_CHARS)
+    if not cleaned:
+        raise ProfileError("Profile names must contain letters or numbers.")
+    return cleaned
+
+
+def _list_profiles(base_dir: Path) -> List[str]:
+    if not base_dir.exists():
+        return []
+    profiles = []
+    for child in sorted(base_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        if (child / PROFILE_FILENAME).exists():
+            profiles.append(child.name)
+    return profiles
+
+
+def _prompt_new_profile(
+    base_dir: Path,
+    save_root: Path,
+    *,
+    input_func: Callable[[str], str],
+    print_func: Callable[[str], None],
+) -> ProfileSelection:
+    while True:
+        raw_name = input_func("Enter new profile name: ")
+        try:
+            name = _normalize_profile_name(raw_name)
+        except ProfileError as exc:
+            print_func(f"[!] {exc}")
+            continue
+        profile_dir = base_dir / name
+        if profile_dir.exists():
+            print_func("[!] That profile already exists.")
+            continue
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        profile_path = profile_dir / PROFILE_FILENAME
+        save_profile(default_profile(), profile_path)
+        return ProfileSelection(
+            name=name,
+            profile_path=profile_path,
+            save_root=save_root / name,
+        )
+
+
+def select_profile(
+    *,
+    base_dir: Path | str = DEFAULT_PROFILE_ROOT,
+    save_root: Path | str = DEFAULT_SAVE_ROOT,
+    input_func: Callable[[str], str] = input,
+    print_func: Callable[[str], None] = print,
+) -> ProfileSelection:
+    base_dir = Path(base_dir)
+    save_root = Path(save_root)
+    base_dir.mkdir(parents=True, exist_ok=True)
+    save_root.mkdir(parents=True, exist_ok=True)
+
+    while True:
+        profiles = _list_profiles(base_dir)
+        if not profiles:
+            print_func("No profiles found. Let's create one.")
+            return _prompt_new_profile(
+                base_dir, save_root, input_func=input_func, print_func=print_func
+            )
+
+        print_func("Select a profile:")
+        for idx, name in enumerate(profiles, start=1):
+            print_func(f"  {idx}. {name}")
+        print_func("  N. New profile")
+        print_func("  Q. Quit")
+
+        choice = input_func("> ").strip().lower()
+        if choice in {"q", "quit"}:
+            print_func("Goodbye!")
+            sys.exit(0)
+        if choice in {"n", "new"}:
+            return _prompt_new_profile(
+                base_dir, save_root, input_func=input_func, print_func=print_func
+            )
+        if choice.isdigit():
+            index = int(choice)
+            if 1 <= index <= len(profiles):
+                name = profiles[index - 1]
+                profile_path = base_dir / name / PROFILE_FILENAME
+                return ProfileSelection(
+                    name=name,
+                    profile_path=profile_path,
+                    save_root=save_root / name,
+                )
+        print_func("Pick a valid profile number, N for new, or Q to quit.")
