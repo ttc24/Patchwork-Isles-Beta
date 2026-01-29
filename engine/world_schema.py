@@ -127,22 +127,6 @@ class EffectSpec:
     validate: EffectValidator
 
 
-def _validate_has_item(condition: Mapping[str, Any], context: str) -> List[str]:
-    errors: List[str] = []
-    value = condition.get("value")
-    if not is_non_empty_str(value):
-        errors.append(f"{context}: 'has_item' requires a non-empty string 'value'.")
-    return errors
-
-
-def _validate_missing_item(condition: Mapping[str, Any], context: str) -> List[str]:
-    errors: List[str] = []
-    value = condition.get("value")
-    if not is_non_empty_str(value):
-        errors.append(f"{context}: 'missing_item' requires a non-empty string 'value'.")
-    return errors
-
-
 def _validate_flag_eq(condition: Mapping[str, Any], context: str) -> List[str]:
     errors: List[str] = []
     flag = condition.get("flag")
@@ -238,22 +222,6 @@ def _validate_time_window(condition: Mapping[str, Any], context: str) -> List[st
     return errors
 
 
-def _validate_add_item(effect: Mapping[str, Any], context: str) -> List[str]:
-    errors: List[str] = []
-    value = effect.get("value")
-    if not is_non_empty_str(value):
-        errors.append(f"{context}: 'add_item' requires a non-empty string 'value'.")
-    return errors
-
-
-def _validate_remove_item(effect: Mapping[str, Any], context: str) -> List[str]:
-    errors: List[str] = []
-    value = effect.get("value")
-    if not is_non_empty_str(value):
-        errors.append(f"{context}: 'remove_item' requires a non-empty string 'value'.")
-    return errors
-
-
 def _validate_add_tag(effect: Mapping[str, Any], context: str, name: str) -> List[str]:
     errors: List[str] = []
     value = effect.get("value")
@@ -325,18 +293,6 @@ def _validate_unlock_start(effect: Mapping[str, Any], context: str) -> List[str]
 
 
 CONDITION_SPECS: Dict[str, ConditionSpec] = {
-    "has_item": ConditionSpec(
-        required_fields=("value",),
-        optional_fields=(),
-        field_rules={"value": "non-empty string item id"},
-        validate=_validate_has_item,
-    ),
-    "missing_item": ConditionSpec(
-        required_fields=("value",),
-        optional_fields=(),
-        field_rules={"value": "non-empty string item id"},
-        validate=_validate_missing_item,
-    ),
     "flag_eq": ConditionSpec(
         required_fields=("flag", "value"),
         optional_fields=(),
@@ -360,6 +316,12 @@ CONDITION_SPECS: Dict[str, ConditionSpec] = {
         optional_fields=(),
         field_rules={"value": "trait string or non-empty list of trait strings"},
         validate=lambda condition, context: _validate_has_tag(condition, context, "has_trait"),
+    ),
+    "missing_tag": ConditionSpec(
+        required_fields=("value",),
+        optional_fields=(),
+        field_rules={"value": "tag string or non-empty list of tag strings"},
+        validate=lambda condition, context: _validate_has_tag(condition, context, "missing_tag"),
     ),
     "rep_at_least": ConditionSpec(
         required_fields=("faction", "value"),
@@ -436,18 +398,6 @@ CONDITION_SPECS: Dict[str, ConditionSpec] = {
 }
 
 EFFECT_SPECS: Dict[str, EffectSpec] = {
-    "add_item": EffectSpec(
-        required_fields=("value",),
-        optional_fields=(),
-        field_rules={"value": "non-empty string item id"},
-        validate=lambda effect, context, nodes, endings: _validate_add_item(effect, context),
-    ),
-    "remove_item": EffectSpec(
-        required_fields=("value",),
-        optional_fields=(),
-        field_rules={"value": "non-empty string item id"},
-        validate=lambda effect, context, nodes, endings: _validate_remove_item(effect, context),
-    ),
     "set_flag": EffectSpec(
         required_fields=("flag", "value"),
         optional_fields=(),
@@ -459,6 +409,14 @@ EFFECT_SPECS: Dict[str, EffectSpec] = {
         optional_fields=(),
         field_rules={"value": "non-empty string tag"},
         validate=lambda effect, context, nodes, endings: _validate_add_tag(effect, context, "add_tag"),
+    ),
+    "remove_tag": EffectSpec(
+        required_fields=("value",),
+        optional_fields=(),
+        field_rules={"value": "non-empty string tag"},
+        validate=lambda effect, context, nodes, endings: _validate_add_tag(
+            effect, context, "remove_tag"
+        ),
     ),
     "add_trait": EffectSpec(
         required_fields=("value",),
