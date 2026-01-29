@@ -13,10 +13,35 @@ def load_world(path: Path) -> dict:
 def build_graph(world: dict) -> dict:
     nodes = world.get("nodes", {})
     graph = {node_id: [] for node_id in nodes}
+
+    def collect_teleport_targets(effects: object) -> list[str]:
+        if not effects:
+            return []
+        if isinstance(effects, dict):
+            effects_list = [effects]
+        elif isinstance(effects, list):
+            effects_list = effects
+        else:
+            return []
+        targets = []
+        for effect in effects_list:
+            if not isinstance(effect, dict):
+                continue
+            if effect.get("type") != "teleport":
+                continue
+            target = effect.get("target")
+            if isinstance(target, str) and target in nodes:
+                targets.append(target)
+        return targets
+
     for node_id, node in nodes.items():
+        for target in collect_teleport_targets(node.get("on_enter")):
+            graph[node_id].append(target)
         for choice in node.get("choices", []) or []:
             target = choice.get("target")
             if isinstance(target, str) and target in nodes:
+                graph[node_id].append(target)
+            for target in collect_teleport_targets(choice.get("effects")):
                 graph[node_id].append(target)
     return graph
 
