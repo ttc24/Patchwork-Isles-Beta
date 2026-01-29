@@ -11,7 +11,7 @@
 - Enter `h` to review the last few story beats, or `q` to quit to the title screen and optionally save.
 
 ## Quick Start
-1. **Install Python 3.8 or newer.** The engine is pure Python with no third-party dependencies required for runtime.
+1. **Install Python 3.9 or newer.** The engine is pure Python with no third-party dependencies required for runtime.
 2. **Clone this repo and enter the folder.**
 3. **(Optional) Create and activate a virtual environment.**
    ```bash
