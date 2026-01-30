@@ -2,29 +2,7 @@
 
 **Tag/Trait-driven narrative engine for weaving political intrigue across a living archipelago.**
 
-_____      _       _                     _       
- |  __ \    | |     | |                   | |      
- | |__) |___| |_ ___| |____      _____ _ _| | __   
- |  ___/ _ \ __/ __| '_ \ \ /\ / / _ \ '__| |/ /   
- | |  |  __/ || (__| | | \ V  V /  __/ |  |   <    
- |_|   \___|\__\___|_| |_|\_/\_/ \___|_|  |_|\_\   
-                                                   
-      ___      _           
-     |_ _|___ | | ___  ___ 
-      | |/ __|| |/ _ \/ __|
-      | |\__ \| |  __/\__ \
-     |___|___/|_|\___||___/
-                           
-
-Welcome to the Patchwork Isles.
-Version: v0.8.0-beta
---------------------------------------------------------------------------------
-> [N] New Story
-> [L] Load Profile
-> [O] Options
-> [Q] Quit
---------------------------------------------------------------------------------
-Enter choice:
+<img width="1008" height="740" alt="image" src="https://github.com/user-attachments/assets/2e314557-d084-434c-894b-cf122863664f" />
 
 ## Controls at a Glance
 - Type the number or letter shown next to a choice and press <kbd>Enter</kbd> to advance the story.
