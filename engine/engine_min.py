@@ -502,8 +502,17 @@ def _merge_world_modules(world, world_path):
         if not isinstance(module_ref, str) or not module_ref.strip():
             _raise_world_validation(["module entries must be non-empty strings."])
         module_path = (base_dir / module_ref).resolve()
-        with open(module_path, "r", encoding="utf-8") as handle:
-            module = json.load(handle)
+        try:
+            with open(module_path, "r", encoding="utf-8") as handle:
+                module = json.load(handle)
+        except FileNotFoundError:
+            _raise_world_validation(
+                [f"{module_path}: module file not found (check world.json modules list)"]
+            )
+        except OSError:
+            _raise_world_validation(
+                [f"{module_path}: module file not found (check world.json modules list)"]
+            )
         if not isinstance(module, dict):
             _raise_world_validation([f"{module_path}: module data must be a JSON object."])
 
