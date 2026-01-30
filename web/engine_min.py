@@ -1252,6 +1252,26 @@ async def pick_start(world, profile, open_options=None):
         else:
             emit_print("Pick a valid number.")
 
+async def maybe_offer_tutorial(profile, profile_path, start_node):
+    if start_node == "tutorial_arrival_beach":
+        return start_node
+    flags = profile.get("flags", {}) if isinstance(profile, dict) else {}
+    if flags.get("tutorial_complete") or flags.get("tutorial_skipped"):
+        return start_node
+    emit_print("\nVisit the tutorial island before your chosen origin?")
+    emit_print("1. Continue to tutorial")
+    emit_print("2. Skip tutorial and start now")
+    while True:
+        selection = (await read_input("> ")).strip().lower()
+        if selection in {"1", "t", "tutorial", "continue"}:
+            return "tutorial_arrival_beach"
+        if selection in {"2", "s", "skip"}:
+            flags["tutorial_skipped"] = True
+            profile["flags"] = flags
+            save_profile(profile, profile_path)
+            return start_node
+        emit_print("Pick 1 to continue or 2 to skip.")
+
 def show_slot_overview(save_manager):
     slots = save_manager.list_slots()
     if not slots:
@@ -1451,6 +1471,11 @@ async def main():
             state.player["rep"][fac] = 0
 
         start_node, start_tags, start_id = await pick_start(world, profile, open_options_menu)
+        start_node = await maybe_offer_tutorial(
+            profile,
+            selection.profile_path,
+            start_node,
+        )
         state.current_node = start_node
         state.start_id = start_id or start_node
         for t in canonicalize_tag_list(start_tags):
