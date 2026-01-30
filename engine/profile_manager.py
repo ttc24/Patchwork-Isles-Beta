@@ -224,8 +224,13 @@ async def select_profile(
 
         choice = (await _resolve_input(input_func, "> ")).strip().lower()
         if choice in {"q", "quit"}:
-            print_func("Goodbye!")
-            sys.exit(0)
+            confirm = (
+                await _resolve_input(input_func, "Are you sure you want to quit? (y/n): ")
+            ).strip().lower()
+            if confirm in {"y", "yes"}:
+                print_func("Goodbye!")
+                sys.exit(0)
+            continue
         if choice in {"n", "new"}:
             return await _prompt_new_profile(
                 base_dir, save_root, input_func=input_func, print_func=print_func

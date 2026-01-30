@@ -1388,6 +1388,7 @@ async def prompt_quit_to_title(save_manager):
         if response in {"c", "cancel"}:
             return False
         if response in {"n", "no"}:
+            emit_print("Continuing without saving.")
             return True
         if response in {"y", "yes"}:
             slot = await prompt_slot_name("save", save_manager)
@@ -1398,6 +1399,7 @@ async def prompt_quit_to_title(save_manager):
             except SaveError as exc:
                 emit_print(f"[!] {exc}")
                 return False
+            emit_print("Game saved.")
             return True
         emit_print("Enter Y, N, or C.")
 
